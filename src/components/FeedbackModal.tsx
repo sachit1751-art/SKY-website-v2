@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   MessageSquarePlus, Bug, Sparkles, HelpCircle, Send, X, 
   CheckCircle2, AlertCircle, Loader2, ExternalLink, ShieldCheck,
-  Smartphone, Info, ArrowUp, ThumbsUp, Search, Clock, PlusCircle
+  Smartphone, Info, ArrowUp, ThumbsUp, Search, Clock, PlusCircle, Pin
 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 
@@ -19,6 +19,7 @@ interface PublicFeedbackItem {
   status: 'pending' | 'in_progress' | 'resolved' | 'dismissed';
   adminResponse?: string | null;
   upvotes: number;
+  isPinned?: boolean;
   createdAt: string;
   updatedAt?: string;
 }
@@ -256,6 +257,9 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = () => {
         return true;
       })
       .sort((a, b) => {
+        const aPinned = a.isPinned ? 1 : 0;
+        const bPinned = b.isPinned ? 1 : 0;
+        if (aPinned !== bPinned) return bPinned - aPinned;
         const votesA = typeof a.upvotes === 'number' ? a.upvotes : 0;
         const votesB = typeof b.upvotes === 'number' ? b.upvotes : 0;
         if (votesB !== votesA) return votesB - votesA;
@@ -425,7 +429,11 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = () => {
                           return (
                             <div 
                               key={item.id}
-                              className="p-4 rounded-2xl border border-[#EBE4CF] dark:border-[#2C2A22] bg-white dark:bg-[#151410] flex items-start gap-3 transition-all hover:border-[#FDE694]/50"
+                              className={`p-4 rounded-2xl border flex items-start gap-3 transition-all ${
+                                item.isPinned
+                                  ? 'border-amber-500/40 bg-amber-500/5 dark:bg-amber-500/5'
+                                  : 'border-[#EBE4CF] dark:border-[#2C2A22] bg-white dark:bg-[#151410] hover:border-[#FDE694]/50'
+                              }`}
                             >
                               {/* Interactive Upvote Button */}
                               <button
@@ -444,6 +452,12 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = () => {
 
                               <div className="flex-1 min-w-0">
                                 <div className="flex flex-wrap items-center gap-1.5 mb-1">
+                                  {item.isPinned && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                                      <Pin size={10} className="fill-current" />
+                                      <span>PINNED</span>
+                                    </span>
+                                  )}
                                   <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-black/5 dark:bg-white/5 text-[#787567] dark:text-[#BDB8A4] uppercase">
                                     {item.type === 'bug' ? '🐛 Bug' : item.type === 'feature' ? '✨ Feature' : '💬 General'}
                                   </span>

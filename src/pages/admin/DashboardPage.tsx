@@ -8,7 +8,8 @@ import { SpotlightCard } from '../../components/SpotlightCard';
 import { useToast } from '../../context/ToastContext';
 import { 
   Plus, Edit2, Trash2, Globe, Github, MessageSquare, ExternalLink, 
-  Shield, UserPlus, ShieldAlert, Search, RefreshCw, Layers, MessageSquarePlus 
+  Shield, UserPlus, ShieldAlert, Search, RefreshCw, Layers, MessageSquarePlus,
+  Download
 } from 'lucide-react';
 import { DashboardSkeleton } from '../../components/skeletons/DashboardSkeleton';
 import { HeaderSkeleton, ProfileSkeleton, ActionSkeleton } from '../../components/skeletons/AdminSkeletons';
@@ -36,6 +37,48 @@ export const DashboardPage: React.FC = () => {
   const [pendingFeedbackCount, setPendingFeedbackCount] = useState<number>(0);
   const [diagnostics, setDiagnostics] = useState<any>(null);
   const { showToast } = useToast();
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportBackup = async () => {
+    setIsExporting(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      
+      const response = await fetch('/api/admin/backup', {
+        headers: token ? {
+          'Authorization': `Bearer ${token}`
+        } : {}
+      });
+      
+      if (!response.ok) {
+        throw new Error('Could not fetch backup payload.');
+      }
+      
+      const resData = await response.json();
+      if (resData.success && resData.backup) {
+        const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(
+          JSON.stringify(resData.backup, null, 2)
+        )}`;
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute('href', jsonString);
+        downloadAnchor.setAttribute(
+          'download',
+          `skyroms_backup_${new Date().toISOString().split('T')[0]}.json`
+        );
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+        showToast({ title: 'System backup exported successfully!', type: 'success' });
+      } else {
+        throw new Error(resData.error || 'Invalid backup payload.');
+      }
+    } catch (err: any) {
+      showToast({ title: err.message || 'Backup export failed.', type: 'error' });
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // Fetches live system diagnostics
   const fetchDiagnostics = async () => {
@@ -496,6 +539,18 @@ export const DashboardPage: React.FC = () => {
                       </div>
                     </div>
                   )}
+
+                  <div className="border-t border-[#EBE4CF] dark:border-[#36342A] pt-4 mt-2">
+                    <button
+                      onClick={handleExportBackup}
+                      disabled={isExporting}
+                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold bg-[#FAF3DD] dark:bg-[#1F1E18] text-[#49473E] dark:text-[#F4EFE6] border border-[#EBE4CF] dark:border-[#36342A] hover:bg-[#FDE694] hover:text-[#121212] transition-all cursor-pointer disabled:opacity-50"
+                      title="Download full JSON export of all ROMs, maintainers, feedbacks and audit logs"
+                    >
+                      <Download size={14} className={isExporting ? 'animate-bounce' : ''} />
+                      <span>{isExporting ? 'Exporting...' : 'Backup & Export System Data'}</span>
+                    </button>
+                  </div>
                 </div>
               </SpotlightCard>
             </>

@@ -7,7 +7,7 @@ import {
   MessageSquarePlus, Bug, Sparkles, HelpCircle, CheckCircle2, 
   Clock, XCircle, Trash2, Search, RefreshCw, Smartphone, 
   ExternalLink, Send, ChevronDown, ChevronUp, UserCheck, Filter,
-  ThumbsUp, ArrowUp, ArrowDownUp
+  ThumbsUp, ArrowUp, ArrowDownUp, Pin, PinOff
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -109,6 +109,35 @@ export const FeedbackManager: React.FC = () => {
     }
   };
 
+  const handleTogglePin = async (id: string, pinState: boolean, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setUpdatingId(id);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      const res = await fetch(`/api/admin/feedback/${id}`, {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          isPinned: pinState
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Update failed');
+
+      setFeedbackList(prev => prev.map(f => f.id === id ? data.feedback : f));
+      showToast({ title: pinState ? 'Feedback pinned to top!' : 'Feedback unpinned', type: 'success' });
+    } catch (err: any) {
+      console.error('Pin error:', err);
+      showToast({ title: err.message || 'Failed to update pin status', type: 'error' });
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   const handleUpvote = async (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     setVotingId(id);
@@ -167,6 +196,10 @@ export const FeedbackManager: React.FC = () => {
     });
 
     return list.sort((a, b) => {
+      const aPinned = a.isPinned ? 1 : 0;
+      const bPinned = b.isPinned ? 1 : 0;
+      if (aPinned !== bPinned) return bPinned - aPinned;
+
       if (sortBy === 'upvotes') {
         const votesA = typeof a.upvotes === 'number' ? a.upvotes : 0;
         const votesB = typeof b.upvotes === 'number' ? b.upvotes : 0;
@@ -391,6 +424,12 @@ export const FeedbackManager: React.FC = () => {
 
                     <div className="flex-1">
                       <div className="flex flex-wrap items-center gap-2 mb-1">
+                        {item.isPinned && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                            <Pin size={10} className="fill-current" />
+                            <span>PINNED</span>
+                          </span>
+                        )}
                         <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-black/5 dark:bg-white/5 text-[#787567] dark:text-[#BDB8A4] uppercase">
                           {item.category.replace('_', ' ')}
                         </span>
@@ -436,6 +475,20 @@ export const FeedbackManager: React.FC = () => {
                         <span className="hidden sm:inline">In Progress</span>
                       </button>
                     )}
+
+                    <button
+                      onClick={(e) => handleTogglePin(item.id, !item.isPinned, e)}
+                      disabled={updatingId === item.id}
+                      className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50 ${
+                        item.isPinned 
+                          ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 hover:bg-amber-500/30' 
+                          : 'bg-black/5 dark:bg-white/5 text-[#787567] dark:text-[#BDB8A4] hover:bg-black/10 dark:hover:bg-white/10 hover:text-[#121212] dark:hover:text-[#F4EFE6]'
+                      }`}
+                      title={item.isPinned ? "Unpin from top" : "Pin feedback to top"}
+                    >
+                      {item.isPinned ? <PinOff size={13} /> : <Pin size={13} />}
+                      <span className="hidden sm:inline">{item.isPinned ? 'Unpin' : 'Pin'}</span>
+                    </button>
 
                     <button
                       onClick={() => setExpandedId(isExpanded ? null : item.id)}

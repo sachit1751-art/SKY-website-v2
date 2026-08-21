@@ -31,6 +31,46 @@ export const RomDetailsModal: React.FC<RomDetailsModalProps> = ({
   const [rom, setRom] = useState<RomItem | null>(initialRom);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 
+  const romId = rom?.id || rom?.name || '';
+  const [checklist, setChecklist] = useState<boolean[]>(() => {
+    try {
+      const saved = localStorage.getItem(`skyroms_checklist_${romId}`);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [false, false, false, false, false, false];
+  });
+
+  useEffect(() => {
+    if (romId) {
+      try {
+        const saved = localStorage.getItem(`skyroms_checklist_${romId}`);
+        if (saved) setChecklist(JSON.parse(saved));
+        else setChecklist([false, false, false, false, false, false]);
+      } catch {
+        setChecklist([false, false, false, false, false, false]);
+      }
+    }
+  }, [romId]);
+
+  const toggleChecklistStep = (index: number) => {
+    const updated = [...checklist];
+    updated[index] = !updated[index];
+    setChecklist(updated);
+    try {
+      localStorage.setItem(`skyroms_checklist_${romId}`, JSON.stringify(updated));
+    } catch {}
+  };
+
+  const resetChecklist = () => {
+    const updated = [false, false, false, false, false, false];
+    setChecklist(updated);
+    try {
+      localStorage.setItem(`skyroms_checklist_${romId}`, JSON.stringify(updated));
+    } catch {}
+  };
+
+  const checklistProgress = Math.round((checklist.filter(Boolean).length / checklist.length) * 100);
+
   useEffect(() => {
     setRom(initialRom);
     
@@ -273,6 +313,103 @@ export const RomDetailsModal: React.FC<RomDetailsModalProps> = ({
                 </div>
               </div>
             )}
+
+            {/* Stateful Interactive Flashing Checklist Companion */}
+            <div className="space-y-3.5 p-5 rounded-3xl bg-[#FAF3DD]/50 dark:bg-[#1C1A14]/70 border border-[#EBE4CF] dark:border-[#36342A]">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#EBE4CF] dark:border-[#36342A]">
+                <div>
+                  <h4 className="text-sm font-bold text-[#49473E] dark:text-[#F4EFE6] flex items-center gap-2">
+                    <span className="flex h-2 w-2 relative">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    FLASHING COMPANION CHECKLIST
+                  </h4>
+                  <p className="text-xs text-[#787567] dark:text-[#BDB8A4] mt-0.5">
+                    Track your installation steps safely. Leftover steps are saved locally.
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <span className="text-xs font-black text-[#49473E] dark:text-[#F4EFE6]">{checklistProgress}%</span>
+                    <span className="text-[10px] text-[#787567] dark:text-[#BDB8A4] block">Completed</span>
+                  </div>
+                  {checklistProgress > 0 && (
+                    <button 
+                      onClick={resetChecklist} 
+                      className="text-[10px] font-bold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer"
+                    >
+                      Reset Steps
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="w-full h-1.5 bg-[#EBE4CF] dark:bg-[#2C2A22] rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-emerald-500 transition-all duration-300"
+                  style={{ width: `${checklistProgress}%` }}
+                />
+              </div>
+
+              {/* Step Items */}
+              <div className="space-y-3 pt-2">
+                {[
+                  {
+                    title: "Boot into Recovery",
+                    description: "Hold Power + Vol Up to boot OrangeFox or custom recovery."
+                  },
+                  {
+                    title: "Wipe System Partitions",
+                    description: "Wipe Dalvik/ART Cache, Metadata, and Cache cleanly."
+                  },
+                  {
+                    title: "Flash Firmware (If needed)",
+                    description: "Flash region-appropriate firmware package (e.g., HyperOS FW)."
+                  },
+                  {
+                    title: "Sideload/Flash ROM Zip",
+                    description: "Select the downloaded ROM zip package and swipe to flash."
+                  },
+                  {
+                    title: "Format Data Partitions",
+                    description: "Perform Format Data (type 'yes') to fully decrypt storage."
+                  },
+                  {
+                    title: "Reboot & Initialise",
+                    description: "Reboot system and enjoy. First boot takes 2-3 minutes."
+                  }
+                ].map((step, idx) => (
+                  <label 
+                    key={idx}
+                    className={`flex items-start gap-3.5 p-3 rounded-2xl border transition-all cursor-pointer ${
+                      checklist[idx] 
+                        ? 'bg-emerald-500/5 border-emerald-500/20 text-[#49473E] dark:text-[#F4EFE6]' 
+                        : 'bg-black/5 dark:bg-white/2 border-transparent text-[#787567] dark:text-[#BDB8A4] hover:bg-black/10 dark:hover:bg-white/5'
+                    }`}
+                  >
+                    <input 
+                      type="checkbox"
+                      checked={checklist[idx]}
+                      onChange={() => toggleChecklistStep(idx)}
+                      className="w-4 h-4 mt-0.5 rounded border-[#EBE4CF] dark:border-[#36342A] text-emerald-500 focus:ring-emerald-400 accent-emerald-500 cursor-pointer"
+                    />
+                    <div className="flex-1">
+                      <div className="text-xs font-bold flex items-center gap-2">
+                        <span className={`px-1.5 py-0.2 rounded font-mono text-[10px] ${
+                          checklist[idx] ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-[#FAF3DD] dark:bg-[#1F1E18] text-[#787567] dark:text-[#BDB8A4]'
+                        }`}>
+                          0{idx + 1}
+                        </span>
+                        <span className={checklist[idx] ? 'line-through text-[#787567] dark:text-[#BDB8A4]' : ''}>{step.title}</span>
+                      </div>
+                      <p className="text-[11px] mt-0.5 leading-relaxed opacity-80">{step.description}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
 
             {/* Community Links & Maintainer */}
             {(rom.maintainerUrl || (rom.extraLinks && rom.extraLinks.length > 0)) && (

@@ -117,6 +117,7 @@ export interface FeedbackItem {
   status: 'pending' | 'in_progress' | 'resolved' | 'dismissed';
   adminResponse?: string | null;
   upvotes?: number;
+  isPinned?: boolean;
   ip?: string | null;
   createdAt: string;
   updatedAt?: string;

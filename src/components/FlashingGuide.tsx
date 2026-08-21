@@ -1,11 +1,39 @@
-import React, { useState } from 'react';
-import { AlertTriangle, ShieldCheck, Terminal, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { AlertTriangle, ShieldCheck, Terminal, RefreshCw, CheckCircle2, RotateCcw } from 'lucide-react';
 import { AnimatedChevronDown, AnimatedDownload } from './icons';
 import { motion, AnimatePresence } from 'motion/react';
 
 export const FlashingGuide: React.FC = () => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<'clean' | 'dirty' | 'firmware'>('clean');
+  const [activeTab, setActiveTab] = useState<'clean' | 'dirty' | 'checklist' | 'firmware'>('clean');
+
+  const [checklist, setChecklist] = useState<boolean[]>(() => {
+    try {
+      const saved = localStorage.getItem('skyroms_guide_checklist');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [false, false, false, false, false, false];
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('skyroms_guide_checklist', JSON.stringify(checklist));
+    } catch {}
+  }, [checklist]);
+
+  const toggleChecklistStep = (index: number) => {
+    setChecklist(prev => {
+      const next = [...prev];
+      next[index] = !next[index];
+      return next;
+    });
+  };
+
+  const resetChecklist = () => {
+    setChecklist([false, false, false, false, false, false]);
+  };
+
+  const checklistProgress = Math.round((checklist.filter(Boolean).length / checklist.length) * 100);
 
   return (
     <div className="bg-[#FAF3DD]/60 dark:bg-[#1F1E18]/70 border border-[#EBE4CF] dark:border-[#36342A] rounded-3xl overflow-hidden transition-all duration-300 shadow-xs" style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 600px' }}>
@@ -79,6 +107,17 @@ export const FlashingGuide: React.FC = () => {
                   }`}
                 >
                   Dirty Flash (OTA / Update)
+                </button>
+                <button
+                  onClick={() => setActiveTab('checklist')}
+                  className={`flex items-center justify-center gap-1.5 min-h-[44px] px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FDE694] ${
+                    activeTab === 'checklist'
+                      ? 'bg-[#FDE694] text-[#121212] shadow-2xs'
+                      : 'text-[#787567] dark:text-[#BDB8A4] hover:text-[#49473E] dark:hover:text-[#F4EFE6] hover:bg-[#FAF0CF] dark:hover:bg-[#2B2921]'
+                  }`}
+                >
+                  <CheckCircle2 size={14} className={checklistProgress === 100 ? 'text-emerald-600' : ''} />
+                  <span>Interactive Checklist ({checklistProgress}%)</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('firmware')}
@@ -174,7 +213,110 @@ export const FlashingGuide: React.FC = () => {
                 </div>
               )}
 
-              {/* Tab 3: Recommended Firmware & GApps */}
+              {/* Tab 3: Interactive Flashing Companion Checklist */}
+              {activeTab === 'checklist' && (
+                <div className="space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-[#FAF0CF]/40 dark:bg-[#14130F]/60 border border-[#EBE4CF] dark:border-[#36342A]">
+                    <div>
+                      <h4 className="text-sm font-bold text-[#49473E] dark:text-[#F4EFE6] flex items-center gap-2">
+                        <span className="flex h-2 w-2 relative">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                        Interactive Flashing Companion Checklist
+                      </h4>
+                      <p className="text-xs text-[#787567] dark:text-[#BDB8A4] mt-0.5">
+                        Follow each step carefully on your device. Progress is saved locally in your browser.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <span className="text-sm font-black text-[#49473E] dark:text-[#F4EFE6]">{checklistProgress}%</span>
+                        <span className="text-[10px] text-[#787567] dark:text-[#BDB8A4] block">Completed</span>
+                      </div>
+                      {checklistProgress > 0 && (
+                        <button
+                          onClick={resetChecklist}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 text-xs font-bold transition-colors cursor-pointer"
+                        >
+                          <RotateCcw size={12} />
+                          <span>Reset</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="w-full h-2 bg-[#EBE4CF] dark:bg-[#2C2A22] rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-emerald-500 transition-all duration-300"
+                      style={{ width: `${checklistProgress}%` }}
+                    />
+                  </div>
+
+                  {/* Checklist Steps */}
+                  <div className="space-y-2.5">
+                    {[
+                      {
+                        title: "1. Unlock Bootloader & Backup",
+                        description: "Ensure device bootloader is unlocked and all crucial personal files are backed up safely off-device."
+                      },
+                      {
+                        title: "2. Boot into Custom Recovery",
+                        description: "Power off device, then hold Power + Volume Up until OrangeFox / TWRP / PBRP screen appears."
+                      },
+                      {
+                        title: "3. Wipe Cache & Metadata Partitions",
+                        description: "Under Wipe menu, select Dalvik/ART Cache, Metadata, and Cache. Do not wipe internal storage yet."
+                      },
+                      {
+                        title: "4. Flash Firmware (if needed)",
+                        description: "If your ROM does not include firmware, flash region-matching HyperOS firmware (Global / India / EEA / China)."
+                      },
+                      {
+                        title: "5. Flash ROM Package & Format Data",
+                        description: "Select the downloaded ROM zip and swipe to flash. Then go to Wipe -> Format Data and type 'yes'."
+                      },
+                      {
+                        title: "6. (Optional) Flash GApps & Reboot",
+                        description: "For Vanilla ROMs requiring GApps: reboot to recovery first, flash GApps zip (e.g. NikGApps), then Reboot System."
+                      }
+                    ].map((step, idx) => (
+                      <label
+                        key={idx}
+                        className={`flex items-start gap-3.5 p-3.5 rounded-2xl border transition-all cursor-pointer ${
+                          checklist[idx]
+                            ? 'bg-emerald-500/5 border-emerald-500/30 text-[#49473E] dark:text-[#F4EFE6]'
+                            : 'bg-[#FAF0CF]/30 dark:bg-[#14130F]/40 border-[#EBE4CF] dark:border-[#36342A] text-[#787567] dark:text-[#BDB8A4] hover:bg-[#FAF0CF]/70 dark:hover:bg-[#1C1B15]'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checklist[idx]}
+                          onChange={() => toggleChecklistStep(idx)}
+                          className="w-4 h-4 mt-0.5 rounded border-[#EBE4CF] dark:border-[#36342A] text-emerald-500 focus:ring-emerald-400 accent-emerald-500 cursor-pointer"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs sm:text-sm font-bold flex items-center gap-2">
+                            <span className={checklist[idx] ? 'line-through text-[#787567] dark:text-[#BDB8A4]' : ''}>
+                              {step.title}
+                            </span>
+                            {checklist[idx] && (
+                              <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
+                            )}
+                          </div>
+                          <p className="text-xs mt-0.5 leading-relaxed opacity-80">
+                            {step.description}
+                          </p>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 4: Recommended Firmware & GApps */}
               {activeTab === 'firmware' && (
                 <div className="space-y-4 text-xs sm:text-sm text-[#787567] dark:text-[#BDB8A4]">
                   <div className="p-4 rounded-xl bg-[#FAF3DD] dark:bg-[#1F1E18] border border-[#EBE4CF] dark:border-[#36342A] space-y-2">

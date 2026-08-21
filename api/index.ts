@@ -188,6 +188,8 @@ function mapRomToDb(data: any) {
   return dbData;
 }
 
+const pinnedFeedbackIds = new Set<string>();
+
 function mapFeedbackToClient(data: any) {
   if (!data) return null;
   
@@ -218,6 +220,7 @@ function mapFeedbackToClient(data: any) {
     status: data.status || 'pending',
     adminResponse: data.admin_response || data.adminResponse || null,
     upvotes: typeof data.upvotes === 'number' ? data.upvotes : 0,
+    isPinned: !!data.is_pinned || !!data.isPinned || (typeof data.id === 'string' && pinnedFeedbackIds.has(data.id)),
     createdAt: data.created_at || data.createdAt,
     updatedAt: data.updated_at || data.updatedAt,
   };
@@ -476,11 +479,23 @@ async function getAllFeedbackRecords() {
         merged.push(clientItem);
       }
     }
-    merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    merged.sort((a, b) => {
+      const aPinned = a.isPinned ? 1 : 0;
+      const bPinned = b.isPinned ? 1 : 0;
+      if (aPinned !== bPinned) return bPinned - aPinned;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
     return merged;
   } catch (err: any) {
     console.warn(`[Supabase Feedback List Fallback]: Listing feedback from memory due to: ${err.message}`);
-    return inMemoryFeedback.map(mapFeedbackToClient).filter(Boolean).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const items = inMemoryFeedback.map(mapFeedbackToClient).filter(Boolean);
+    items.sort((a, b) => {
+      const aPinned = a.isPinned ? 1 : 0;
+      const bPinned = b.isPinned ? 1 : 0;
+      if (aPinned !== bPinned) return bPinned - aPinned;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+    return items;
   }
 }
 
@@ -1254,6 +1269,54 @@ app.get('/api/admin/logs', verifySuperAdmin, async (req: Request, res: Response)
   }
 });
 
+// 14b. Admin Unified Database Backup (verifyAdmin)
+app.get('/api/admin/backup', verifyAdmin, async (req: any, res: Response) => {
+  try {
+    const roms = await getAllRomRecords();
+    const admins = await getAllAdminRecords();
+    const feedback = await getAllFeedbackRecords();
+    
+    let logs: any[] = [];
+    try {
+      const { data } = await supabaseAdmin
+        .from('admin_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(200);
+      if (data) {
+        logs = data.map(log => ({
+          id: log.id,
+          adminUid: log.admin_uid,
+          adminEmail: log.admin_email,
+          action: log.action,
+          details: log.details,
+          ipAddress: log.ip_address,
+          timestamp: log.created_at
+        }));
+      }
+    } catch {}
+
+    const backupPayload = {
+      backupVersion: '1.0',
+      exportedAt: new Date().toISOString(),
+      exportedBy: req.adminProfile?.email || 'unknown',
+      data: {
+        roms,
+        admins,
+        feedback,
+        logs
+      }
+    };
+
+    const ip = (req.headers['x-forwarded-for'] as string) || req.ip;
+    await logAdminAction(req.userUid, 'EXPORT_BACKUP', { exportedBy: req.adminProfile?.email }, ip);
+
+    return res.status(200).json({ success: true, backup: backupPayload });
+  } catch (e: any) {
+    return res.status(500).json({ error: e.message || 'Failed to generate system backup.' });
+  }
+});
+
 // 15. Public ROMs API
 app.get('/api/roms', async (req: Request, res: Response) => {
   try {
@@ -1682,7 +1745,7 @@ app.get('/api/admin/feedback', verifyAdmin, async (req: Request, res: Response) 
 app.patch('/api/admin/feedback/:id', verifyAdmin, async (req: any, res: Response) => {
   try {
     const { id } = req.params;
-    const { status, adminResponse } = req.body;
+    const { status, adminResponse, isPinned } = req.body;
 
     if (!id || !isValidUUID(id)) {
       return res.status(400).json({ error: 'Valid Feedback ID parameter is required.' });
@@ -1698,16 +1761,25 @@ app.patch('/api/admin/feedback/:id', verifyAdmin, async (req: any, res: Response
       return res.status(404).json({ error: 'Feedback record not found.' });
     }
 
+    if (isPinned !== undefined) {
+      if (isPinned) {
+        pinnedFeedbackIds.add(id);
+      } else {
+        pinnedFeedbackIds.delete(id);
+      }
+    }
+
     const updated = {
       ...mapFeedbackToClient(existing),
       status: status !== undefined ? status : existing.status,
       adminResponse: adminResponse !== undefined ? adminResponse : existing.admin_response,
+      isPinned: isPinned !== undefined ? isPinned : (pinnedFeedbackIds.has(id) || !!existing.is_pinned),
       updatedAt: new Date().toISOString()
     };
 
     const saved = await saveFeedbackRecord(updated);
     const ip = (req.headers['x-forwarded-for'] as string) || req.ip;
-    await logAdminAction(req.userUid, 'UPDATE_FEEDBACK', { feedbackId: id, status, title: existing.title }, ip);
+    await logAdminAction(req.userUid, 'UPDATE_FEEDBACK', { feedbackId: id, status, isPinned, title: existing.title }, ip);
 
     return res.status(200).json({ success: true, feedback: saved });
   } catch (e: any) {
