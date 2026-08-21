@@ -12,6 +12,8 @@ export const PullToRefresh: React.FC = () => {
   const { showToast } = useToast();
 
   useEffect(() => {
+    let ticking = false;
+
     const handleTouchStart = (e: TouchEvent) => {
       // Only enable pull-to-refresh when scrolled to top
       if (window.scrollY <= 2) {
@@ -27,12 +29,18 @@ export const PullToRefresh: React.FC = () => {
       const currentY = e.touches[0].clientY;
       const diffY = currentY - startYRef.current;
 
-      if (diffY > 0 && window.scrollY <= 2) {
-        // Apply resistance physics formula
-        const damped = Math.min(Math.pow(diffY, 0.82) * 2.2, 110);
-        setPullDistance(damped);
-      } else {
-        setPullDistance(0);
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          if (diffY > 0 && window.scrollY <= 2) {
+            // Apply resistance physics formula
+            const damped = Math.min(Math.pow(diffY, 0.82) * 2.2, 110);
+            setPullDistance(damped);
+          } else {
+            setPullDistance(0);
+          }
+          ticking = false;
+        });
+        ticking = true;
       }
     };
 

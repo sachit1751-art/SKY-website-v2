@@ -148,7 +148,7 @@ export const HomePage: React.FC = () => {
 
       {/* Future Update Dialog */}
       {isFutureModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 animate-in fade-in">
           <div className="bg-[#FAF3DD] dark:bg-[#1C1B17] border border-[#EBE4CF] dark:border-[#36342A] rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-[#121212] dark:text-[#FAF3DD] space-y-4">
             <div className="w-12 h-12 rounded-2xl bg-[#FDE694]/20 border border-[#FDE694]/40 flex items-center justify-center text-[#FDE694] font-bold text-xl mx-auto">
               🚀

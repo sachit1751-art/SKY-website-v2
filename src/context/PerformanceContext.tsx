@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
 export type PerformanceTier = 'high' | 'medium' | 'low';
 
@@ -21,13 +21,8 @@ export const PerformanceProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [isTouchOnly, setIsTouchOnly] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [saveData, setSaveData] = useState(false);
-  
-  const fpsMeasurements = useRef<number[]>([]);
-  const lastChangeTime = useRef<number>(Date.now());
 
   useEffect(() => {
-    let unmounted = false;
-
     const nav = navigator as any;
     const connection = nav.connection || nav.mozConnection || nav.webkitConnection;
     const initialSaveData = connection ? connection.saveData === true : false;
@@ -38,10 +33,11 @@ export const PerformanceProvider: React.FC<{ children: React.ReactNode }> = ({ c
       setPrefersReducedMotion(match.matches);
     };
     checkReducedMotion();
+
     const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     motionQuery.addEventListener('change', checkReducedMotion);
 
-    // --- 1. Initial heuristic based detection ---
+    // --- Initial heuristic based detection ---
     const detectInitialTier = () => {
       let score = 0;
       
@@ -62,21 +58,13 @@ export const PerformanceProvider: React.FC<{ children: React.ReactNode }> = ({ c
         score += 1;
       }
 
-      // WebGL/GPU capability check
-      try {
-        const canvas = document.createElement('canvas');
-        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-        if (gl) {
-          score += 1;
-        }
-      } catch (e) {
-        // Ignore errors
+      if (initialSaveData) {
+        score -= 1;
       }
 
-      // Max score is 5 (2 + 2 + 1)
       if (score <= 2) {
         return 'low';
-      } else if (score <= 4) {
+      } else if (score <= 3) {
         return 'medium';
       }
       return 'high';
@@ -84,106 +72,26 @@ export const PerformanceProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     setTier(detectInitialTier());
 
-    // --- 2. Pointer capability ---
+    // --- Pointer capability ---
     const checkPointer = () => {
       const match = window.matchMedia('(pointer: fine)');
       setIsTouchOnly(!match.matches);
     };
     checkPointer();
+
     const mediaQuery = window.matchMedia('(pointer: fine)');
     mediaQuery.addEventListener('change', checkPointer);
 
-    // --- 3. Dynamic FPS Monitoring ---
-    let frameId: number;
-    let lastFrameTime = performance.now();
-    let frameCount = 0;
-    
-    // Sample FPS over 1-second intervals
-    const measureFPS = (time: number) => {
-      if (unmounted) return;
-      
-      frameCount++;
-      const elapsed = time - lastFrameTime;
-      
-      if (elapsed >= 1000) {
-        const fps = (frameCount * 1000) / elapsed;
-        frameCount = 0;
-        lastFrameTime = time;
-        
-        fpsMeasurements.current.push(fps);
-        if (fpsMeasurements.current.length > 5) {
-          fpsMeasurements.current.shift(); // Keep last 5 samples
-        }
-        
-        evaluatePerformance();
-      }
-      
-      // Keep monitoring, but could pause if tab is hidden
-      if (!document.hidden) {
-        frameId = requestAnimationFrame(measureFPS);
-      } else {
-        // Stop measuring while hidden
-      }
-    };
-    
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        cancelAnimationFrame(frameId);
-      } else {
-        lastFrameTime = performance.now();
-        frameCount = 0;
-        frameId = requestAnimationFrame(measureFPS);
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    frameId = requestAnimationFrame(measureFPS);
-
-    const evaluatePerformance = () => {
-      const now = Date.now();
-      // Cooldown of 5 seconds between adjustments
-      if (now - lastChangeTime.current < 5000) return;
-      if (fpsMeasurements.current.length < 3) return;
-
-      const avgFps = fpsMeasurements.current.reduce((a, b) => a + b, 0) / fpsMeasurements.current.length;
-      
-      setTier((currentTier) => {
-        let newTier = currentTier;
-        
-        if (avgFps < 30 && currentTier === 'high') {
-          newTier = 'medium';
-        } else if (avgFps < 20 && currentTier !== 'low') {
-          newTier = 'low';
-        } else if (avgFps > 55 && currentTier === 'medium') {
-          newTier = 'high'; // Upgrade cautiously
-        } else if (avgFps > 50 && currentTier === 'low') {
-          newTier = 'medium'; 
-        }
-
-        if (newTier !== currentTier) {
-          lastChangeTime.current = now;
-          // Clear history on shift
-          fpsMeasurements.current = [];
-        }
-        
-        return newTier;
-      });
-    };
-
     return () => {
-      unmounted = true;
       mediaQuery.removeEventListener('change', checkPointer);
       motionQuery.removeEventListener('change', checkReducedMotion);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      cancelAnimationFrame(frameId);
     };
   }, []);
 
   return (
     <PerformanceContext.Provider value={{ tier, isTouchOnly, prefersReducedMotion, saveData }}>
       {children}
-    </PerformanceContext.Provider>
-  );
+    </PerformanceContext.Provider>  );
 };
 
 export const usePerformanceTier = () => useContext(PerformanceContext);

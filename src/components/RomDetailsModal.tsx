@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { RomItem } from '../../shared/types';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Calendar, Copy, Check, ShieldCheck, Sparkles, AlertCircle, Send, FileText, CheckCircle2, Star } from 'lucide-react';
@@ -7,6 +7,7 @@ import { useToast } from '../context/ToastContext';
 import { useSavedRoms } from '../hooks/useSavedRoms';
 
 import { usePerformanceTier } from '../context/PerformanceContext';
+import { supabase } from '../lib/supabase';
 
 interface RomDetailsModalProps {
   rom: RomItem | null;
@@ -16,7 +17,7 @@ interface RomDetailsModalProps {
 }
 
 export const RomDetailsModal: React.FC<RomDetailsModalProps> = ({
-  rom,
+  rom: initialRom,
   onClose,
   onCopyUrl,
   isCopied
@@ -25,6 +26,45 @@ export const RomDetailsModal: React.FC<RomDetailsModalProps> = ({
   const { tier } = usePerformanceTier();
   const { toggleSave, isSaved } = useSavedRoms();
   const isVeryLowEnd = tier === 'low';
+
+  const [rom, setRom] = useState<RomItem | null>(initialRom);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+
+  useEffect(() => {
+    setRom(initialRom);
+    
+    if (initialRom && initialRom.id && initialRom.id.length > 5) {
+      const fetchFullDetails = async () => {
+        setIsLoadingDetails(true);
+        try {
+          const { data, error } = await supabase
+            .from('roms')
+            .select('description, changelog, screenshots, extra_links, stability_trends')
+            .eq('id', initialRom.id)
+            .single();
+            
+          if (!error && data) {
+            setRom((prev) => prev ? { 
+              ...prev, 
+              description: data.description || prev.description,
+              changelog: data.changelog || prev.changelog,
+              screenshots: data.screenshots || prev.screenshots,
+              extraLinks: data.extra_links || prev.extraLinks,
+              stabilityTrends: data.stability_trends || prev.stabilityTrends
+            } : prev);
+          }
+        } catch (e) {
+          // Silent fallback
+        } finally {
+          setIsLoadingDetails(false);
+        }
+      };
+      
+      if (initialRom.changelog === undefined || initialRom.changelog.length === 0) {
+        fetchFullDetails();
+      }
+    }
+  }, [initialRom]);
   // Close on Escape key press
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

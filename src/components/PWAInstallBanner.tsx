@@ -81,7 +81,7 @@ export const PWAInstallBanner: React.FC = () => {
       {/* Non-intrusive Corner PWA Install Pill Banner */}
       {showBanner && !showDialog && (
         <div className="fixed bottom-5 right-5 z-[90] pointer-events-auto animate-in fade-in slide-in-from-bottom-5 duration-300">
-          <div className="flex items-center gap-2.5 p-2.5 pl-3 bg-[#1C1B17]/95 dark:bg-[#121210]/95 backdrop-blur-md text-[#FAF3DD] rounded-2xl border border-[#36342A] shadow-xl shadow-black/50 hover:border-[#FDE694]/40 transition-all">
+          <div className="flex items-center gap-2.5 p-2.5 pl-3 bg-[#1C1B17] dark:bg-[#121210] text-[#FAF3DD] rounded-2xl border border-[#36342A] shadow-xl shadow-black/50 hover:border-[#FDE694]/40 transition-all">
             <div className="w-8 h-8 rounded-xl bg-[#FDE694]/15 border border-[#FDE694]/30 flex items-center justify-center shrink-0 text-[#FDE694]">
               <Smartphone className="w-4 h-4" />
             </div>
@@ -113,7 +113,7 @@ export const PWAInstallBanner: React.FC = () => {
 
       {/* Info Dialog Box */}
       {showDialog && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/80 animate-in fade-in duration-200">
           <div className="relative w-full max-w-sm bg-[#1C1B17] border border-[#36342A] rounded-3xl p-6 text-center text-[#FAF3DD] shadow-2xl space-y-4 animate-in zoom-in-95 duration-200">
             <button
               onClick={() => {

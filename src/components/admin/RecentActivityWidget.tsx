@@ -44,7 +44,7 @@ export const RecentActivityWidget: React.FC = () => {
     fetchLogs();
     
     // Set up a lightweight polling interval to emulate the real-time feedback loop safely
-    const interval = setInterval(fetchLogs, 15000);
+    const interval = setInterval(fetchLogs, 60000);
     return () => clearInterval(interval);
   }, [isSuperAdmin]);
 

@@ -27,5 +27,28 @@ export default defineConfig(() => {
       // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+            'vendor-motion': ['motion', 'motion/react'],
+            'vendor-supabase': ['@supabase/supabase-js'],
+            'admin-core': [
+              './src/pages/admin/DashboardPage.tsx',
+              './src/pages/admin/RomEditorPage.tsx',
+              './src/pages/admin/FeedbackAdminPage.tsx',
+              './src/pages/admin/SecurityLogsPage.tsx',
+              './src/pages/admin/ApproveAdminsPage.tsx',
+            ],
+            'admin-auth': [
+              './src/pages/admin/LoginPage.tsx',
+              './src/pages/admin/RegisterPage.tsx',
+              './src/pages/admin/ResetPasswordPage.tsx',
+            ]
+          }
+        }
+      }
+    }
   };
 });

@@ -153,7 +153,7 @@ export const RomsPage: React.FC = () => {
       // Fetch all valid ROMs from Supabase database
       const { data, error } = await supabase
         .from('roms')
-        .select('*')
+        .select('id, name, title, version, android_version, status, maintainer, maintainer_url, maintainer_handle, maintainer_id, url, is_pinned, logo_url, download_count, battery_efficiency, device, variant, source_url, community_url, created_at, updated_at')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -1316,7 +1316,7 @@ export const RomsPage: React.FC = () => {
 
       {/* Floating Compare Dock Bar */}
       {compareList.length > 0 && (
-        <div className="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 sm:translate-x-0 sm:left-auto sm:right-8 z-[80] flex items-center gap-3 p-3 pl-4 bg-[#1C1B17]/95 border border-[#36342A] rounded-2xl shadow-2xl backdrop-blur-md text-[#FAF3DD] animate-in fade-in slide-in-from-bottom-3">
+        <div className="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 sm:translate-x-0 sm:left-auto sm:right-8 z-[80] flex items-center gap-3 p-3 pl-4 bg-[#1C1B17] border border-[#36342A] rounded-2xl shadow-2xl text-[#FAF3DD] animate-in fade-in slide-in-from-bottom-3">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-[#FDE694]" />
             <span className="text-xs font-bold">{compareList.length} ROMs selected</span>

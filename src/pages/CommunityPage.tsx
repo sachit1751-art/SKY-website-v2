@@ -44,6 +44,7 @@ export const CommunityPage: React.FC = () => {
     let animId: number;
     let width = (canvas.width = canvas.parentElement?.clientWidth || 800);
     let height = (canvas.height = 200);
+    let isVisible = false;
 
     const handleResize = () => {
       if (!canvas) return;
@@ -65,6 +66,10 @@ export const CommunityPage: React.FC = () => {
     }
 
     const draw = () => {
+      if (!isVisible) {
+        animId = requestAnimationFrame(draw);
+        return;
+      }
       ctx.clearRect(0, 0, width, height);
       const isDark = document.documentElement.classList.contains('dark');
 
@@ -103,10 +108,23 @@ export const CommunityPage: React.FC = () => {
       animId = requestAnimationFrame(draw);
     };
 
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          isVisible = entry.isIntersecting;
+        });
+      },
+      { threshold: 0 }
+    );
+    if (canvas.parentElement) {
+      observer.observe(canvas.parentElement);
+    }
+
     draw();
 
     return () => {
       window.removeEventListener('resize', handleResize);
+      observer.disconnect();
       cancelAnimationFrame(animId);
     };
   }, [tier, prefersReducedMotion]);

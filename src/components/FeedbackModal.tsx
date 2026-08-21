@@ -296,7 +296,7 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => !submitting && setIsOpen(false)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+              className="fixed inset-0 bg-black/80 transition-opacity"
             />
 
             {/* Modal Dialog */}
