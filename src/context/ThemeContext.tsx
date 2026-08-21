@@ -53,12 +53,23 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const setTheme = (newTheme: Theme) => {
     if (newTheme === theme) return;
 
+    const performTransition = () => {
+      document.documentElement.classList.add('theme-transitioning');
+      setThemeState(newTheme);
+      return new Promise<void>((resolve) => {
+        window.setTimeout(() => {
+          document.documentElement.classList.remove('theme-transitioning');
+          resolve();
+        }, 400);
+      });
+    };
+
     if (typeof document !== 'undefined' && 'startViewTransition' in document) {
       document.startViewTransition(() => {
-        applyThemeUpdate(newTheme);
+        return performTransition();
       });
     } else {
-      applyThemeUpdate(newTheme);
+      performTransition();
     }
   };
 

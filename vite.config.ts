@@ -28,25 +28,32 @@ export default defineConfig(() => {
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
     },
     build: {
-      chunkSizeWarningLimit: 1200,
+      chunkSizeWarningLimit: 1400,
+      sourcemap: true,
       rollupOptions: {
         output: {
-          manualChunks: {
-            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-            'vendor-motion': ['motion', 'motion/react'],
-            'vendor-supabase': ['@supabase/supabase-js'],
-            'admin-core': [
-              './src/pages/admin/DashboardPage.tsx',
-              './src/pages/admin/RomEditorPage.tsx',
-              './src/pages/admin/FeedbackAdminPage.tsx',
-              './src/pages/admin/SecurityLogsPage.tsx',
-              './src/pages/admin/ApproveAdminsPage.tsx',
-            ],
-            'admin-auth': [
-              './src/pages/admin/LoginPage.tsx',
-              './src/pages/admin/RegisterPage.tsx',
-              './src/pages/admin/ResetPasswordPage.tsx',
-            ]
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+                return 'vendor-react';
+              }
+              if (id.includes('motion')) {
+                return 'vendor-motion';
+              }
+              if (id.includes('supabase')) {
+                return 'vendor-supabase';
+              }
+              return 'vendor-misc';
+            }
+            if (id.includes('/src/pages/admin/')) {
+              if (id.includes('LoginPage') || id.includes('RegisterPage') || id.includes('ResetPasswordPage')) {
+                return 'admin-auth';
+              }
+              return 'admin-core';
+            }
+            if (id.includes('/src/pages/')) {
+              return 'pages-public';
+            }
           }
         }
       }

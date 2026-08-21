@@ -453,84 +453,40 @@ async function upvoteFeedbackRecord(id: string, voterKey: string, action: 'upvot
     throw new Error('Invalid feedback ID');
   }
 
-  // Check if existing feedback exists
-  const { data: existing, error: existingErr } = await supabaseAdmin
+  // Atomically process vote via PostgreSQL RPC transaction with row locking
+  const { data: rpcResult, error: rpcError } = await supabaseAdmin.rpc('vote_feedback', {
+    p_feedback_id: id,
+    p_voter_key: voterKey,
+    p_action: action
+  });
+
+  if (rpcError) {
+    throw new Error(`Database voting error: ${rpcError.message}`);
+  }
+
+  if (rpcResult && !rpcResult.success) {
+    throw new Error(rpcResult.message || 'Failed to process vote');
+  }
+
+  // Fetch updated feedback record to return full client representation
+  const { data: feedbackRow, error: fbErr } = await supabaseAdmin
     .from('feedback')
     .select('*')
     .eq('id', id)
-    .maybeSingle();
-
-  if (existingErr || !existing) {
-    throw new Error('Feedback item not found');
-  }
-
-  // Check if voter has already voted in feedback_votes
-  const { data: existingVote, error: voteErr } = await supabaseAdmin
-    .from('feedback_votes')
-    .select('*')
-    .eq('feedback_id', id)
-    .eq('voter_key', voterKey)
-    .maybeSingle();
-
-  if (voteErr && voteErr.code !== 'PGRST116') {
-    console.warn('[Feedback Vote Lookup Warning]:', voteErr.message);
-  }
-
-  let userHasVoted = !!existingVote;
-
-  if (action === 'downvote' || (action === 'toggle' && userHasVoted)) {
-    if (userHasVoted) {
-      await supabaseAdmin
-        .from('feedback_votes')
-        .delete()
-        .eq('feedback_id', id)
-        .eq('voter_key', voterKey);
-    }
-  } else {
-    // Upvote requested
-    if (userHasVoted) {
-      // User has already voted - return current count, do not double-count
-      return { feedback: mapFeedbackToClient(existing), voted: true, message: 'Already voted' };
-    }
-    // Insert new vote record
-    await supabaseAdmin
-      .from('feedback_votes')
-      .insert({
-        feedback_id: id,
-        voter_key: voterKey,
-        vote_type: 'upvote',
-        created_at: new Date().toISOString()
-      });
-  }
-
-  // Recalculate total votes count atomically from feedback_votes table
-  const { count, error: countErr } = await supabaseAdmin
-    .from('feedback_votes')
-    .select('feedback_id', { count: 'exact', head: true })
-    .eq('feedback_id', id);
-
-  const newUpvoteCount = typeof count === 'number' ? count : Math.max(0, (existing.upvotes || 0) + (userHasVoted ? -1 : 1));
-
-  // Update public.feedback upvotes
-  const { data: updated, error: updateErr } = await supabaseAdmin
-    .from('feedback')
-    .update({
-      upvotes: newUpvoteCount,
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', id)
-    .select()
     .single();
 
-  if (updateErr) {
-    console.error('[Feedback Upvote Update Error]:', updateErr.message);
+  if (fbErr || !feedbackRow) {
+    throw new Error('Feedback item not found after voting');
   }
 
+  const finalUpvotes = typeof rpcResult?.upvotes === 'number' ? rpcResult.upvotes : feedbackRow.upvotes;
+  const finalVoted = typeof rpcResult?.voted === 'boolean' ? rpcResult.voted : false;
+
   return {
-    feedback: mapFeedbackToClient(updated || existing),
-    upvotes: newUpvoteCount,
-    voted: !userHasVoted,
-    message: 'Vote updated successfully'
+    feedback: mapFeedbackToClient(feedbackRow),
+    upvotes: finalUpvotes,
+    voted: finalVoted,
+    message: rpcResult?.message || 'Vote updated successfully'
   };
 }
 
@@ -1417,8 +1373,20 @@ app.post('/api/feedback/:id/upvote', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Valid Feedback ID parameter is required.' });
     }
 
-    const rawIp = (req.headers['x-forwarded-for'] as string) || req.ip || 'unknown_ip';
-    const voterKey = rawIp.split(',')[0].trim();
+    let voterKey = '';
+    const authHeader = req.headers.authorization;
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.split('Bearer ')[1];
+      const user = await resolveToken(token);
+      if (user && user.uid) {
+        voterKey = `auth:${user.uid}`;
+      }
+    }
+
+    if (!voterKey) {
+      const rawIp = (req.headers['x-forwarded-for'] as string) || req.ip || 'unknown_ip';
+      voterKey = `anon:${rawIp.split(',')[0].trim()}`;
+    }
 
     const result = await upvoteFeedbackRecord(id, voterKey, action || 'upvote');
 

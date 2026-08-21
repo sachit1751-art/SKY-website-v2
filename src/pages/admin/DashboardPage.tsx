@@ -16,6 +16,7 @@ import { InviteMaintainer } from '../../components/admin/InviteMaintainer';
 import { RecentActivityWidget } from '../../components/admin/RecentActivityWidget';
 import { ActivityHeatmapChart } from '../../components/admin/ActivityHeatmapChart';
 import { FeedbackManager } from '../../components/admin/FeedbackManager';
+import { AdminNotificationBanner } from '../../components/admin/AdminNotificationBanner';
 import { SEO } from '../../components/SEO';
 import { motion } from 'motion/react';
 import { 
@@ -324,6 +325,8 @@ export const DashboardPage: React.FC = () => {
           </div>
         </header>
       )}
+
+      {!authLoading && <AdminNotificationBanner />}
 
       {!authLoading && (
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
