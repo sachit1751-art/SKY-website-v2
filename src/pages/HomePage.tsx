@@ -16,6 +16,7 @@ import { MagneticButton } from '../components/MagneticButton';
 import { TextLoop } from '../components/TextLoop';
 
 export const HomePage: React.FC = () => {
+  const [isFutureModalOpen, setIsFutureModalOpen] = React.useState(false);
   return (
     <div className="space-y-12 md:space-y-24 pb-20">
       <SEO
@@ -118,20 +119,55 @@ export const HomePage: React.FC = () => {
                   </p>
                 </div>
 
-                <div className="bg-white/80 dark:bg-[#121210]/90 border border-[#EBE4CF] dark:border-[#36342A] rounded-2xl p-5 hover:border-[#FDE694] dark:hover:border-[#FDE694]/40 transition-all shadow-xs">
-                  <div className="w-10 h-10 rounded-xl bg-[#FDE694] text-[#121212] flex items-center justify-center mb-3 font-bold shadow-xs">
-                    🚀
+                <div className="bg-white/80 dark:bg-[#121210]/90 border border-[#EBE4CF] dark:border-[#36342A] rounded-2xl p-5 hover:border-[#FDE694] dark:hover:border-[#FDE694]/40 transition-all shadow-xs flex flex-col justify-between">
+                  <div>
+                    <div className="w-10 h-10 rounded-xl bg-[#FDE694] text-[#121212] flex items-center justify-center mb-3 font-bold shadow-xs">
+                      📱
+                    </div>
+                    <h4 className="text-base font-bold text-[#121212] dark:text-[#F4EFE6] mb-1">SKY App Launcher</h4>
+                    <p className="text-xs text-[#787567] dark:text-[#BDB8A4] leading-relaxed font-medium">
+                      Official companion application for POCO M6 Pro 5G / Redmi 12 5G custom ROMs, fastboot flashing tools, and live changelogs.
+                    </p>
                   </div>
-                  <h4 className="text-base font-bold text-[#121212] dark:text-[#F4EFE6] mb-1">Direct ROM Releases</h4>
-                  <p className="text-xs text-[#787567] dark:text-[#BDB8A4] leading-relaxed font-medium">
-                    Stay updated with real-time changelogs, battery efficiency ratings, and direct links to PixelOS, Evolution X, and RisingOS builds for SKY.
-                  </p>
+                  <div className="mt-4">
+                    <button
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent('trigger-sky-install'));
+                      }}
+                      className="w-full py-2 px-4 bg-[#121212] dark:bg-[#FAF3DD] text-[#FAF3DD] dark:text-[#121212] font-bold text-xs rounded-xl hover:opacity-90 transition-all shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <span>Install SKY App</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </ScrollReveal>
       </section>
+
+      {/* Future Update Dialog */}
+      {isFutureModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-[#FAF3DD] dark:bg-[#1C1B17] border border-[#EBE4CF] dark:border-[#36342A] rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-[#121212] dark:text-[#FAF3DD] space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-[#FDE694]/20 border border-[#FDE694]/40 flex items-center justify-center text-[#FDE694] font-bold text-xl mx-auto">
+              🚀
+            </div>
+            <div className="text-center space-y-2">
+              <h3 className="text-xl font-black">Coming in Future Updates!</h3>
+              <p className="text-xs sm:text-sm text-[#787567] dark:text-[#BDB8A4] leading-relaxed">
+                Direct native app package installations and automated one-click OTA updater integration will be available in upcoming SKY OS releases.
+              </p>
+            </div>
+            <button
+              onClick={() => setIsFutureModalOpen(false)}
+              className="w-full py-2.5 bg-[#FDE694] text-[#121212] font-bold text-xs rounded-xl hover:bg-[#F4D068] transition-all cursor-pointer shadow-md"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Concise Product Gateway Section */}
       <section className="px-4 sm:px-6 md:px-12 max-w-7xl mx-auto space-y-8">

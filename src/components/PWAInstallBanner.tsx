@@ -23,7 +23,21 @@ export const PWAInstallBanner: React.FC = () => {
       setShowBanner(true);
     };
 
+    const handleCustomTrigger = () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult: any) => {
+          if (choiceResult.outcome === 'accepted') {
+            console.log('User accepted the PWA install prompt');
+          }
+          setDeferredPrompt(null);
+        });
+      }
+      setShowDialog(true);
+    };
+
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('trigger-sky-install', handleCustomTrigger);
 
     // Show banner after 3 seconds on mobile or desktop if standalone is false
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
@@ -35,6 +49,7 @@ export const PWAInstallBanner: React.FC = () => {
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('trigger-sky-install', handleCustomTrigger);
       clearTimeout(timer);
     };
   }, [isDismissed]);
