@@ -718,6 +718,72 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', supabaseConnected: !!supabaseUrl });
 });
 
+// Dynamic Sitemap Endpoint
+app.get('/sitemap.xml', async (req, res) => {
+  try {
+    const roms = await getAllRomRecords();
+    const domain = 'https://sky-roms.vercel.app';
+    const staticUrls = [
+      '',
+      '/roms',
+      '/guides',
+      '/team',
+      '/faq',
+      '/status'
+    ];
+
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+    
+    staticUrls.forEach(path => {
+      xml += `  <url>\n    <loc>${domain}${path}</loc>\n    <changefreq>daily</changefreq>\n    <priority>${path === '' ? '1.0' : '0.8'}</priority>\n  </url>\n`;
+    });
+
+    (roms || []).forEach((rom: any) => {
+      const romSlug = encodeURIComponent(rom.name || '');
+      xml += `  <url>\n    <loc>${domain}/roms?search=${romSlug}</loc>\n    <lastmod>${(rom.updatedAt || rom.createdAt || new Date().toISOString()).split('T')[0]}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>\n`;
+    });
+
+    xml += `</urlset>`;
+    res.setHeader('Content-Type', 'application/xml');
+    return res.status(200).send(xml);
+  } catch (err: any) {
+    res.setHeader('Content-Type', 'application/xml');
+    return res.status(500).send(`<?xml version="1.0" encoding="UTF-8"?><error>${err.message}</error>`);
+  }
+});
+
+// Dynamic RSS Feed Endpoint
+app.get('/feed.xml', async (req, res) => {
+  try {
+    const roms = await getAllRomRecords();
+    const domain = 'https://sky-roms.vercel.app';
+    
+    let xml = `<?xml version="1.0" encoding="UTF-8" ?>\n<rss version="2.0">\n  <channel>\n`;
+    xml += `    <title>SKY ROM Ecosystem Releases</title>\n`;
+    xml += `    <link>${domain}/roms</link>\n`;
+    xml += `    <description>Latest Custom ROMs and Kernel releases for POCO M6 Pro 5G / Redmi 12 5G (sky / sky_in).</description>\n`;
+    xml += `    <language>en-us</language>\n`;
+    xml += `    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>\n`;
+
+    (roms || []).slice(0, 20).forEach((rom: any) => {
+      xml += `    <item>\n`;
+      xml += `      <title>${rom.name} (Android ${rom.androidVersion || '15'})</title>\n`;
+      xml += `      <link>${domain}/roms?search=${encodeURIComponent(rom.name || '')}</link>\n`;
+      xml += `      <description>${(rom.description || 'Custom ROM build for SKY ecosystem. Maintainer: ' + (rom.maintainer || 'Community')).replace(/&/g, '&amp;')}</description>\n`;
+      xml += `      <pubDate>${new Date(rom.createdAt || Date.now()).toUTCString()}</pubDate>\n`;
+      xml += `      <guid>${domain}/roms#${encodeURIComponent(rom.name || '')}</guid>\n`;
+      xml += `    </item>\n`;
+    });
+
+    xml += `  </channel>\n</rss>`;
+    res.setHeader('Content-Type', 'application/xml');
+    return res.status(200).send(xml);
+  } catch (err: any) {
+    res.setHeader('Content-Type', 'application/xml');
+    return res.status(500).send(`<?xml version="1.0" encoding="UTF-8"?><error>${err.message}</error>`);
+  }
+});
+
 // Admin routes mapping
 
 // Get Current Admin

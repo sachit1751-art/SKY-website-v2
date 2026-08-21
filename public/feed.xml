@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2000/svg">
+  <channel>
+    <title>SKY ROM Ecosystem — Official Releases Feed</title>
+    <link>https://sky-roms.vercel.app/roms</link>
+    <description>Latest Custom ROMs, Kernel releases, and Android builds for POCO M6 Pro 5G / Redmi 12 5G (sky / sky_in).</description>
+    <language>en-us</language>
+    <lastBuildDate>Thu, 20 Aug 2026 23:00:00 GMT</lastBuildDate>
+
+    <item>
+      <title>RisingOS Android 15 v6.2 Release for SKY</title>
+      <link>https://sky-roms.vercel.app/roms?search=RisingOS</link>
+      <description>Official RisingOS Android 15 build with HyperOS features, KernelSU support, and daily performance optimizations.</description>
+      <pubDate>Thu, 20 Aug 2026 12:00:00 GMT</pubDate>
+      <guid>https://sky-roms.vercel.app/roms#risingos-15</guid>
+    </item>
+
+    <item>
+      <title>PixelOS Android 15 (AOSP) Official Build</title>
+      <link>https://sky-roms.vercel.app/roms?search=PixelOS</link>
+      <description>PixelOS Android 15 with native Google Pixel Launcher, Unlimited Photos Backup, and safety net pass out-of-the-box.</description>
+      <pubDate>Wed, 19 Aug 2026 18:00:00 GMT</pubDate>
+      <guid>https://sky-roms.vercel.app/roms#pixelos-15</guid>
+    </item>
+
+    <item>
+      <title>Evolution X v10.1 (Android 15) for POCO M6 Pro 5G</title>
+      <link>https://sky-roms.vercel.app/roms?search=Evolution</link>
+      <description>Evolution X customization power house featuring Evolvability settings, custom status bar clocks, and high FPS unlocker.</description>
+      <pubDate>Tue, 18 Aug 2026 15:30:00 GMT</pubDate>
+      <guid>https://sky-roms.vercel.app/roms#evolution-15</guid>
+    </item>
+  </channel>
+</rss>

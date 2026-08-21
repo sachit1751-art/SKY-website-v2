@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Offline Mode — SKY ROM Ecosystem</title>
+  <style>
+    :root {
+      --bg: #121210;
+      --card-bg: #1C1B17;
+      --border: #36342A;
+      --text: #FAF3DD;
+      --subtext: #9C9888;
+      --accent: #FDE694;
+      --accent-hover: #F4D068;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 24px 16px;
+      flex: 1;
+    }
+    .header {
+      text-align: center;
+      padding: 32px 16px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      margin-bottom: 24px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      background: rgba(253, 230, 148, 0.15);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    h1 {
+      margin: 0 0 8px 0;
+      font-size: 28px;
+    }
+    p {
+      color: var(--subtext);
+      font-size: 14px;
+      line-height: 1.5;
+      margin: 0 0 20px 0;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--accent);
+      color: #121210;
+      padding: 10px 20px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 14px;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn:hover {
+      background: var(--accent-hover);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+    }
+    .card h2 {
+      margin: 0 0 10px 0;
+      font-size: 16px;
+      color: var(--accent);
+    }
+    .code-block {
+      background: #0D0D0B;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #FDE694;
+      margin: 6px 0;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="badge">OFFLINE MODE</div>
+      <h1>You are currently offline</h1>
+      <p>Don't worry! You can still view cached device guides and essential flashing commands below.</p>
+      <button class="btn" onclick="window.location.reload()">
+        ⚡ Retry Connection
+      </button>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>⚡ Fastboot Commands</h2>
+        <p>Essential terminal commands for flashing custom ROMs offline:</p>
+        <div class="code-block">fastboot devices</div>
+        <div class="code-block">fastboot reboot bootloader</div>
+        <div class="code-block">fastboot flash boot boot.img</div>
+        <div class="code-block">fastboot flash init_boot init_boot.img</div>
+        <div class="code-block">fastboot -w</div>
+      </div>
+
+      <div class="card">
+        <h2>🛠️ Recovery Flashing Guide</h2>
+        <p>Offline steps for TWRP / OrangeFox / Sky Recovery:</p>
+        <div class="code-block">1. Reboot to Fastboot (Vol Down + Power)</div>
+        <div class="code-block">2. fastboot flash recovery recovery.img</div>
+        <div class="code-block">3. fastboot boot recovery.img</div>
+        <div class="code-block">4. Format Data (Type 'yes')</div>
+        <div class="code-block">5. ADB Sideload filename.zip</div>
+      </div>
+
+      <div class="card">
+        <h2>📱 Device Specs (POCO M6 Pro 5G / Redmi 12 5G)</h2>
+        <p><strong>Codename:</strong> sky / sky_in</p>
+        <p><strong>SoC:</strong> Snapdragon 4 Gen 2 (4nm)</p>
+        <p><strong>Partitioning:</strong> Virtual A/B (Retrofit Dynamic Partitions)</p>
+        <p><strong>Slot Switch:</strong> <code>fastboot set_active a</code> / <code>b</code></p>
+      </div>
+
+      <div class="card">
+        <h2>💡 Saved ROM Info</h2>
+        <p>Popular builds supported by the SKY ecosystem:</p>
+        <div class="code-block">• PixelOS (Android 14 / 15 AOSP)</div>
+        <div class="code-block">• Evolution X (Customization & Gaming)</div>
+        <div class="code-block">• RisingOS (Ultra Smooth & HyperOS Mods)</div>
+        <div class="code-block">• LineageOS 21 (Clean Official Base)</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

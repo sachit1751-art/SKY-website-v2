@@ -87,6 +87,52 @@ export const HomePage: React.FC = () => {
         <ScreenshotCarousel />
       </section>
 
+      {/* SKY App Download & Features Section */}
+      <section className="px-4 sm:px-6 md:px-12 max-w-7xl mx-auto py-8">
+        <ScrollReveal distance={16}>
+          <div className="bg-gradient-to-br from-[#FAF3DD]/95 to-[#F4ECDC]/95 dark:from-[#1A1914]/95 dark:to-[#151410]/95 border border-[#EBE4CF] dark:border-[#2C2A22] rounded-3xl p-6 sm:p-10 text-[#121212] dark:text-[#FAF3DD] shadow-xl relative overflow-hidden">
+            {/* Glowing ambient orb */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-[#FDE694]/20 rounded-full blur-3xl pointer-events-none" />
+            
+            <div className="relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
+              <div className="lg:col-span-1 space-y-4">
+                <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold bg-[#FDE694] text-[#121212] border border-[#EBE4CF] dark:border-[#FDE694]/30 uppercase tracking-widest shadow-xs">
+                  <Sparkles className="w-3.5 h-3.5" /> Official PWA Release
+                </span>
+                <h3 className="text-2xl sm:text-3xl font-black text-[#121212] dark:text-[#F4EFE6] tracking-tight">
+                  Download the SKY App for instant ROM updates.
+                </h3>
+                <p className="text-xs sm:text-sm text-[#787567] dark:text-[#BDB8A4] leading-relaxed font-medium">
+                  Experience lightning-fast custom ROM downloads, offline fastboot flash guides, and direct community support right from your home screen.
+                </p>
+              </div>
+
+              <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-white/80 dark:bg-[#121210]/90 border border-[#EBE4CF] dark:border-[#36342A] rounded-2xl p-5 hover:border-[#FDE694] dark:hover:border-[#FDE694]/40 transition-all shadow-xs">
+                  <div className="w-10 h-10 rounded-xl bg-[#FDE694] text-[#121212] flex items-center justify-center mb-3 font-bold shadow-xs">
+                    ⚡
+                  </div>
+                  <h4 className="text-base font-bold text-[#121212] dark:text-[#F4EFE6] mb-1">Offline Access & PWA</h4>
+                  <p className="text-xs text-[#787567] dark:text-[#BDB8A4] leading-relaxed font-medium">
+                    Install SKY App with 1-tap from your browser. Access all essential flashing commands, device specs, and ROM lists even without internet.
+                  </p>
+                </div>
+
+                <div className="bg-white/80 dark:bg-[#121210]/90 border border-[#EBE4CF] dark:border-[#36342A] rounded-2xl p-5 hover:border-[#FDE694] dark:hover:border-[#FDE694]/40 transition-all shadow-xs">
+                  <div className="w-10 h-10 rounded-xl bg-[#FDE694] text-[#121212] flex items-center justify-center mb-3 font-bold shadow-xs">
+                    🚀
+                  </div>
+                  <h4 className="text-base font-bold text-[#121212] dark:text-[#F4EFE6] mb-1">Direct ROM Releases</h4>
+                  <p className="text-xs text-[#787567] dark:text-[#BDB8A4] leading-relaxed font-medium">
+                    Stay updated with real-time changelogs, battery efficiency ratings, and direct links to PixelOS, Evolution X, and RisingOS builds for SKY.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ScrollReveal>
+      </section>
+
       {/* Concise Product Gateway Section */}
       <section className="px-4 sm:px-6 md:px-12 max-w-7xl mx-auto space-y-8">
         {/* Section Heading with ScrollReveal */}

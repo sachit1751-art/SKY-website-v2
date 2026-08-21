@@ -3,14 +3,20 @@
   "name": "SKY — Open-Source Smartphone & Custom ROM Ecosystem",
   "icons": [
     {
-      "src": "/screenshots/screenshot1.jpg",
-      "type": "image/jpeg",
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
       "sizes": "512x512",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512",
+      "purpose": "any"
     }
   ],
   "start_url": "/",
-  "background_color": "#FFF8E1",
+  "background_color": "#1C1B17",
   "theme_color": "#FDE694",
   "display": "standalone",
   "orientation": "portrait",

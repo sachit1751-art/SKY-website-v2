@@ -1,8 +1,11 @@
-const CACHE_NAME = 'sky-pwa-cache-v1';
+const CACHE_NAME = 'sky-pwa-cache-v2';
 const URLS_TO_CACHE = [
   '/',
   '/index.html',
-  '/manifest.json'
+  '/offline.html',
+  '/manifest.json',
+  '/favicon.svg',
+  '/icon.svg'
 ];
 
 self.addEventListener('install', (event) => {
@@ -29,7 +32,7 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
-  // Network-first with cache fallback
+  
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {
@@ -45,7 +48,9 @@ self.addEventListener('fetch', (event) => {
         return caches.match(event.request).then((cachedResponse) => {
           if (cachedResponse) return cachedResponse;
           if (event.request.headers.get('accept')?.includes('text/html')) {
-            return caches.match('/index.html');
+            return caches.match('/offline.html').then((offlineRes) => {
+              return offlineRes || caches.match('/index.html');
+            });
           }
         });
       })

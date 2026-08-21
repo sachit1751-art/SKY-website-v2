@@ -9,6 +9,7 @@ import { ScrollReveal } from '../components/ScrollReveal';
 import { SEO } from '../components/SEO';
 import { FlashingGuide } from '../components/FlashingGuide';
 import { RomDetailsModal } from '../components/RomDetailsModal';
+import { RomCompareModal } from '../components/RomCompareModal';
 import { TextLoop } from '../components/TextLoop';
 import { useToast } from '../context/ToastContext';
 import { supabase } from '../lib/supabase';
@@ -107,7 +108,25 @@ export const RomsPage: React.FC = () => {
   }, [routeId, searchParams, roms]);
   const [sortBy, setSortBy] = useState<'newest' | 'name'>('newest');
   const [selectedRom, setSelectedRom] = useState<RomItem | null>(null);
+  const [compareList, setCompareList] = useState<RomItem[]>([]);
+  const [isCompareModalOpen, setIsCompareModalOpen] = useState<boolean>(false);
   const [expandedRomId, setExpandedRomId] = useState<string | null>(null);
+
+  const toggleCompare = (rom: RomItem, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const exists = compareList.some(r => r.name === rom.name);
+    if (exists) {
+      showToast({ title: `Removed ${rom.name} from comparison`, type: 'info' });
+      setCompareList((prev) => prev.filter(r => r.name !== rom.name));
+    } else {
+      if (compareList.length >= 3) {
+        showToast({ title: 'Maximum 3 ROMs comparison limit reached', type: 'error' });
+        return;
+      }
+      showToast({ title: `Added ${rom.name} to comparison`, type: 'success' });
+      setCompareList((prev) => [...prev, rom]);
+    }
+  };
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [isFirebaseLoading, setIsFirebaseLoading] = useState(true);
@@ -945,21 +964,38 @@ export const RomsPage: React.FC = () => {
                   <div 
                     className="group bg-[#FAF3DD]/50 dark:bg-[#1F1E18]/60 hover:bg-[#FAF3DD] dark:hover:bg-[#1F1E18] rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-[#EBE4CF] dark:border-[#36342A] transition-all duration-300 shadow-xs hover:shadow-md hover:border-[#FDE694]/60 dark:hover:border-[#FDE694]/40 relative"
                   >
-                    {/* Quick Bookmark Button (Top-Right) */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleSave(rom.id || rom.name);
-                      }}
-                      className={`absolute top-3.5 right-3.5 sm:top-5 sm:right-5 p-2 rounded-xl z-10 transition-all active:scale-90 ${
-                        isSaved(rom.id || rom.name)
-                          ? 'text-amber-500 bg-amber-500/15'
-                          : 'text-[#787567] bg-[#FAF0CF]/60 dark:bg-[#151410] hover:text-amber-500 hover:bg-amber-500/10'
-                      }`}
-                      title={isSaved(rom.id || rom.name) ? "Remove from saved" : "Save ROM"}
-                    >
-                      <Star className={`w-4 h-4 ${isSaved(rom.id || rom.name) ? 'fill-current' : ''}`} />
-                    </button>
+                    {/* Quick Action Buttons (Top-Right: Compare & Bookmark) */}
+                    <div className="absolute top-3.5 right-3.5 sm:top-5 sm:right-5 flex items-center gap-1.5 z-10">
+                      <button
+                        onClick={(e) => toggleCompare(rom, e)}
+                        className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer flex items-center gap-1 border ${
+                          compareList.some(r => r.name === rom.name)
+                            ? 'bg-[#FDE694] text-[#121210] border-[#FDE694] shadow-xs'
+                            : 'text-[#787567] bg-[#FAF0CF]/60 dark:bg-[#151410] border-[#EBE4CF] dark:border-[#36342A] hover:text-[#121212] dark:hover:text-[#FAF3DD] hover:border-[#FDE694]/50'
+                        }`}
+                        title={compareList.some(r => r.name === rom.name) ? "Remove from compare" : "Add to comparison"}
+                      >
+                        <Layers className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">
+                          {compareList.some(r => r.name === rom.name) ? 'Compared' : '+ Compare'}
+                        </span>
+                      </button>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSave(rom.id || rom.name);
+                        }}
+                        className={`p-2 rounded-xl transition-all active:scale-90 cursor-pointer ${
+                          isSaved(rom.id || rom.name)
+                            ? 'text-amber-500 bg-amber-500/15'
+                            : 'text-[#787567] bg-[#FAF0CF]/60 dark:bg-[#151410] hover:text-amber-500 hover:bg-amber-500/10'
+                        }`}
+                        title={isSaved(rom.id || rom.name) ? "Remove from saved" : "Save ROM"}
+                      >
+                        <Star className={`w-4 h-4 ${isSaved(rom.id || rom.name) ? 'fill-current' : ''}`} />
+                      </button>
+                    </div>
 
                     {/* Main Card Content: Stacks vertically on mobile, horizontal on lg+ */}
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-6">
@@ -1263,6 +1299,46 @@ export const RomsPage: React.FC = () => {
         onCopyUrl={(url) => handleCopyLink(url)}
         isCopied={selectedRom ? copiedUrl === selectedRom.url : false}
       />
+
+      {/* Side-by-Side ROM Comparison Modal */}
+      {isCompareModalOpen && (
+        <RomCompareModal
+          roms={compareList}
+          onClose={() => setIsCompareModalOpen(false)}
+          onRemoveRom={(romName) => {
+            setCompareList(prev => prev.filter(r => r.name !== romName));
+            if (compareList.length <= 1) {
+              setIsCompareModalOpen(false);
+            }
+          }}
+        />
+      )}
+
+      {/* Floating Compare Dock Bar */}
+      {compareList.length > 0 && (
+        <div className="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 sm:translate-x-0 sm:left-auto sm:right-8 z-[80] flex items-center gap-3 p-3 pl-4 bg-[#1C1B17]/95 border border-[#36342A] rounded-2xl shadow-2xl backdrop-blur-md text-[#FAF3DD] animate-in fade-in slide-in-from-bottom-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-[#FDE694]" />
+            <span className="text-xs font-bold">{compareList.length} ROMs selected</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setIsCompareModalOpen(true)}
+              className="px-3.5 py-1.5 bg-[#FDE694] text-[#121210] font-bold text-xs rounded-xl hover:bg-[#F4D068] transition-all cursor-pointer shadow-md active:scale-95 flex items-center gap-1"
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>Compare Now</span>
+            </button>
+            <button
+              onClick={() => setCompareList([])}
+              className="p-1.5 text-[#9C9888] hover:text-[#FAF3DD] rounded-lg hover:bg-white/5 cursor-pointer"
+              title="Clear comparison list"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Back to Top Button */}
       <AnimatePresence>
