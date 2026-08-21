@@ -14,6 +14,7 @@ import { DashboardSkeleton } from '../../components/skeletons/DashboardSkeleton'
 import { HeaderSkeleton, ProfileSkeleton, ActionSkeleton } from '../../components/skeletons/AdminSkeletons';
 import { InviteMaintainer } from '../../components/admin/InviteMaintainer';
 import { RecentActivityWidget } from '../../components/admin/RecentActivityWidget';
+import { ActivityHeatmapChart } from '../../components/admin/ActivityHeatmapChart';
 import { FeedbackManager } from '../../components/admin/FeedbackManager';
 import { SEO } from '../../components/SEO';
 import { motion } from 'motion/react';
@@ -122,6 +123,8 @@ export const DashboardPage: React.FC = () => {
   useEffect(() => {
     fetchRoms();
     fetchFeedbackCount();
+    const interval = setInterval(fetchFeedbackCount, 15000);
+    return () => clearInterval(interval);
   }, []);
 
   // Filter ROMs relevant to currently signed in maintainer
@@ -454,8 +457,10 @@ export const DashboardPage: React.FC = () => {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.1 }}
-          className="lg:col-span-2"
+          className="lg:col-span-2 space-y-6"
         >
+          <ActivityHeatmapChart roms={allRoms} />
+
           <div className="flex items-center justify-between mb-6 px-2">
             <h3 className="text-xs font-black text-[#787567] dark:text-[#BDB8A4] tracking-widest uppercase flex items-center gap-2">
               {activeTab === 'all' ? 'ALL ROM RELEASES' : 'YOUR CLAIMED PROJECTS'} ({filteredRoms.length})

@@ -1,6 +1,7 @@
 import { SpotlightCard } from '../components/SpotlightCard';
 import { Sparkline } from '../components/Sparkline';
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
 import PullToRefresh from 'react-pull-to-refresh';
 import { AOSP_ROMS } from '../data';
@@ -119,14 +120,20 @@ export const RomsPage: React.FC = () => {
     setCompareList((prev) => {
       const exists = prev.some(r => r.name === rom.name);
       if (exists) {
-        showToast({ title: `Removed ${rom.name} from comparison`, type: 'info' });
+        setTimeout(() => {
+          showToast({ title: `Removed ${rom.name} from comparison`, type: 'info' });
+        }, 0);
         return prev.filter(r => r.name !== rom.name);
       } else {
         if (prev.length >= 3) {
-          showToast({ title: 'Maximum 3 ROMs comparison limit reached', type: 'error' });
+          setTimeout(() => {
+            showToast({ title: 'Maximum 3 ROMs comparison limit reached', type: 'error' });
+          }, 0);
           return prev;
         }
-        showToast({ title: `Added ${rom.name} to comparison`, type: 'success' });
+        setTimeout(() => {
+          showToast({ title: `Added ${rom.name} to comparison`, type: 'success' });
+        }, 0);
         return [...prev, rom];
       }
     });
@@ -415,6 +422,15 @@ export const RomsPage: React.FC = () => {
     
     return result;
   }, [searchQuery, selectedFilter, sortBy, roms, savedIds, selectedAndroidVersions, selectedStabilities]);
+
+  const listParentRef = useRef<HTMLDivElement>(null);
+
+  const rowVirtualizer = useWindowVirtualizer({
+    count: sortedAndFilteredRoms.length,
+    estimateSize: () => 180,
+    scrollMargin: listParentRef.current?.offsetTop ?? 0,
+    overscan: 5,
+  });
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -933,11 +949,8 @@ export const RomsPage: React.FC = () => {
             )}
           </div>
 
-      {/* ROM List */}
-      <motion.div 
-        className="space-y-4"
-        style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 1000px' }}
-      >
+      {/* ROM List with Virtualized Rendering */}
+      <div>
         {sortedAndFilteredRoms.length === 0 ? (
           <div className="text-center py-16 px-6 bg-[#FAF3DD]/40 dark:bg-[#1F1E18]/40 rounded-3xl border border-[#EBE4CF] dark:border-[#36342A] space-y-3">
             <div className="w-12 h-12 rounded-2xl bg-[#FDE694]/50 flex items-center justify-center mx-auto text-[#49473E] dark:text-[#121212]">
@@ -960,29 +973,46 @@ export const RomsPage: React.FC = () => {
             </button>
           </div>
         ) : (
-          sortedAndFilteredRoms.map((rom) => {
-            const romId = rom.id || rom.name;
-            return (
-              <RomCard
-                key={romId}
-                rom={rom}
-                isSaved={isSaved(romId)}
-                isCompared={compareList.some(r => r.name === rom.name)}
-                isThisCopied={copiedUrl === rom.url}
-                isExpanded={expandedRomId === romId}
-                mirrorLabel={getMirrorLabel(rom.url)}
-                staggerItemVariants={staggerItemVariants}
-                onToggleCompare={toggleCompare}
-                onToggleSave={handleToggleSave}
-                onSelectRom={handleSelectRom}
-                onCopyLink={handleCopyLink}
-                onToggleExpand={toggleExpandRom}
-                onShowDownloadToast={handleShowDownloadToast}
-              />
-            );
-          })
+          <div
+            ref={listParentRef}
+            className="relative w-full"
+            style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
+          >
+            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+              const rom = sortedAndFilteredRoms[virtualRow.index];
+              if (!rom) return null;
+              const romId = rom.id || rom.name;
+              return (
+                <div
+                  key={romId}
+                  data-index={virtualRow.index}
+                  ref={rowVirtualizer.measureElement}
+                  className="absolute top-0 left-0 w-full pb-4"
+                  style={{
+                    transform: `translateY(${virtualRow.start - rowVirtualizer.options.scrollMargin}px)`,
+                  }}
+                >
+                  <RomCard
+                    rom={rom}
+                    isSaved={isSaved(romId)}
+                    isCompared={compareList.some((r) => r.name === rom.name)}
+                    isThisCopied={copiedUrl === rom.url}
+                    isExpanded={expandedRomId === romId}
+                    mirrorLabel={getMirrorLabel(rom.url)}
+                    staggerItemVariants={staggerItemVariants}
+                    onToggleCompare={toggleCompare}
+                    onToggleSave={handleToggleSave}
+                    onSelectRom={handleSelectRom}
+                    onCopyLink={handleCopyLink}
+                    onToggleExpand={toggleExpandRom}
+                    onShowDownloadToast={handleShowDownloadToast}
+                  />
+                </div>
+              );
+            })}
+          </div>
         )}
-      </motion.div>
+      </div>
     </div>
   </div>
 

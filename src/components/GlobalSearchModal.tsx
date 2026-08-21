@@ -196,8 +196,9 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
 
   // Focus input on open
   useEffect(() => {
+    let focusTimer: ReturnType<typeof setTimeout> | undefined;
     if (isOpen) {
-      setTimeout(() => {
+      focusTimer = setTimeout(() => {
         inputRef.current?.focus();
       }, 50);
       setSelectedIndex(0);
@@ -205,6 +206,9 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
       setQuery('');
       setActiveCategory('all');
     }
+    return () => {
+      if (focusTimer) clearTimeout(focusTimer);
+    };
   }, [isOpen]);
 
   // Global Keyboard shortcuts

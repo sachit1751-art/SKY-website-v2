@@ -53,8 +53,8 @@ export const FeedbackManager: React.FC = () => {
   const [votingId, setVotingId] = useState<string | null>(null);
   const { showToast } = useToast();
 
-  const fetchFeedback = async () => {
-    setLoading(true);
+  const fetchFeedback = async (showLoader = true) => {
+    if (showLoader) setLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
@@ -66,14 +66,18 @@ export const FeedbackManager: React.FC = () => {
       setFeedbackList(data.feedback || []);
     } catch (err: any) {
       console.warn('Feedback fetch notice:', err);
-      showToast({ title: 'Failed to fetch feedback from Supabase', type: 'error' });
+      if (showLoader) {
+        showToast({ title: 'Failed to fetch feedback from Supabase', type: 'error' });
+      }
     } finally {
-      setLoading(false);
+      if (showLoader) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchFeedback();
+    fetchFeedback(true);
+    const interval = setInterval(() => fetchFeedback(false), 15000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleUpdateStatus = async (id: string, newStatus: FeedbackItem['status'], adminResponse?: string) => {
@@ -306,7 +310,7 @@ export const FeedbackManager: React.FC = () => {
           </div>
 
           <button
-            onClick={fetchFeedback}
+            onClick={() => fetchFeedback(true)}
             className="p-2 bg-white dark:bg-[#151410] border border-[#EBE4CF] dark:border-[#36342A] rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer text-[#787567] dark:text-[#BDB8A4]"
             title="Refresh Feedback from Supabase"
           >

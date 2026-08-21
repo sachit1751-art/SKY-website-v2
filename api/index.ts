@@ -1,24 +1,24 @@
 import dotenv from 'dotenv';
 dotenv.config({ override: true });
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import { createClient } from '@supabase/supabase-js';
 import rateLimit from 'express-rate-limit';
 
 const app = express();
 app.set('trust proxy', 1);
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
 
-// Force JSON content type for all /api routes to prevent HTML/text parsing errors
-app.use('/api', (req, res, next) => {
+// Force JSON content type for all /api routes
+app.use('/api', (req: Request, res: Response, next: NextFunction) => {
   res.setHeader('Content-Type', 'application/json');
   next();
 });
 
-// Initialize Supabase Server Client
+// Environment Configuration
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
-const isValidKey = (key: string) => {
+const isValidKey = (key: string): boolean => {
   if (!key) return false;
   const trimmed = key.trim();
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return false;
@@ -26,54 +26,17 @@ const isValidKey = (key: string) => {
   return trimmed.length >= 10;
 };
 
-if (!supabaseUrl || !isValidKey(supabaseServiceKey)) {
-  console.warn('[Supabase Server] Valid Supabase credentials are not fully configured.');
+function ensureSupabaseConfig(): void {
+  if (!supabaseUrl || !isValidKey(supabaseServiceKey)) {
+    throw new Error('Server Configuration Error: SUPABASE_SERVICE_ROLE_KEY is required for server-side admin operations.');
+  }
 }
 
 let _supabaseAdminInstance: any = null;
 
 const getSupabaseAdmin = () => {
+  ensureSupabaseConfig();
   if (!_supabaseAdminInstance) {
-    if (!supabaseUrl || !isValidKey(supabaseServiceKey) || !supabaseUrl.startsWith('http')) {
-      return new Proxy({}, {
-        get: (target, prop) => {
-          if (prop === 'auth') {
-            return {
-              getUser: async () => ({ data: { user: null }, error: new Error('Supabase service key is not configured.') }),
-              admin: {
-                createUser: async () => ({ data: null, error: new Error('Supabase service key is not configured.') }),
-                deleteUser: async () => ({ error: new Error('Supabase service key is not configured.') }),
-              }
-            };
-          }
-          return () => {
-            return {
-              select: () => ({
-                eq: () => ({
-                  maybeSingle: async () => ({ data: null, error: new Error('Supabase service key is not configured.') }),
-                  single: async () => ({ data: null, error: new Error('Supabase service key is not configured.') }),
-                  order: () => ({
-                    limit: async () => ({ data: [], error: new Error('Supabase service key is not configured.') }),
-                  }),
-                }),
-                order: () => ({
-                  limit: async () => ({ data: [], error: new Error('Supabase service key is not configured.') }),
-                }),
-              }),
-              insert: async () => ({ data: null, error: new Error('Supabase service key is not configured.') }),
-              upsert: () => ({
-                select: () => ({
-                  single: async () => ({ data: null, error: new Error('Supabase service key is not configured.') }),
-                })
-              }),
-              delete: () => ({
-                eq: async () => ({ error: new Error('Supabase service key is not configured.') })
-              }),
-            };
-          };
-        }
-      });
-    }
     _supabaseAdminInstance = createClient(supabaseUrl, supabaseServiceKey.trim(), {
       auth: {
         autoRefreshToken: false,
@@ -84,6 +47,7 @@ const getSupabaseAdmin = () => {
   return _supabaseAdminInstance;
 };
 
+// Lazy proxy for Supabase Admin client
 const supabaseAdmin = new Proxy({}, {
   get: (target, prop) => {
     const client = getSupabaseAdmin();
@@ -95,7 +59,13 @@ const supabaseAdmin = new Proxy({}, {
   }
 }) as any;
 
-// Database and Client Mapping Helpers
+// Helper to validate UUIDs
+function isValidUUID(str: string): boolean {
+  if (!str || typeof str !== 'string') return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str.trim());
+}
+
+// Data Mappers
 function mapAdminToClient(data: any) {
   if (!data) return null;
   return {
@@ -106,15 +76,15 @@ function mapAdminToClient(data: any) {
     displayName: data.display_name,
     username: data.username,
     role: data.role,
-    active: data.active,
+    active: !!data.active,
     approvalStatus: data.approval_status,
-    isSuperAdmin: data.is_super_admin || data.role === 'superadmin',
-    bio: data.bio,
-    avatarUrl: data.avatar_url,
-    githubUrl: data.github_url,
-    telegramUrl: data.telegram_url,
-    telegramUsername: data.telegram_username,
-    websiteUrl: data.website_url,
+    isSuperAdmin: !!(data.is_super_admin || data.role === 'superadmin'),
+    bio: data.bio || '',
+    avatarUrl: data.avatar_url || '',
+    githubUrl: data.github_url || '',
+    telegramUrl: data.telegram_url || '',
+    telegramUsername: data.telegram_username || '',
+    websiteUrl: data.website_url || '',
     createdAt: data.created_at,
     updatedAt: data.updated_at,
   };
@@ -147,28 +117,28 @@ function mapRomToClient(data: any) {
   return {
     id: data.id,
     name: data.name,
-    title: data.title,
-    version: data.version,
+    title: data.title || '',
+    version: data.version || '',
     androidVersion: data.android_version,
     status: data.status,
     maintainer: data.maintainer,
-    maintainerUrl: data.maintainer_url,
-    maintainerHandle: data.maintainer_handle,
-    maintainerId: data.maintainer_id,
-    url: data.url,
-    description: data.description,
-    changelog: data.changelog,
-    isPinned: data.is_pinned,
-    logoUrl: data.logo_url,
-    extraLinks: data.extra_links,
-    downloadCount: data.download_count,
-    stabilityTrends: data.stability_trends,
-    batteryEfficiency: data.battery_efficiency,
-    screenshots: data.screenshots,
-    device: data.device,
-    variant: data.variant,
-    sourceUrl: data.source_url,
-    communityUrl: data.community_url,
+    maintainerUrl: data.maintainer_url || '',
+    maintainerHandle: data.maintainer_handle || '',
+    maintainerId: data.maintainer_id || null,
+    url: data.url || '',
+    description: data.description || '',
+    changelog: Array.isArray(data.changelog) ? data.changelog : [],
+    isPinned: !!data.is_pinned,
+    logoUrl: data.logo_url || '',
+    extraLinks: Array.isArray(data.extra_links) ? data.extra_links : [],
+    downloadCount: typeof data.download_count === 'number' ? data.download_count : 0,
+    stabilityTrends: Array.isArray(data.stability_trends) ? data.stability_trends : [],
+    batteryEfficiency: typeof data.battery_efficiency === 'number' ? data.battery_efficiency : 3,
+    screenshots: Array.isArray(data.screenshots) ? data.screenshots : [],
+    device: data.device || 'sky',
+    variant: data.variant || 'Official',
+    sourceUrl: data.source_url || '',
+    communityUrl: data.community_url || '',
     createdAt: data.created_at,
     updatedAt: data.updated_at,
   };
@@ -206,169 +176,17 @@ function mapRomToDb(data: any) {
   return dbData;
 }
 
-// Helper to validate if a string is a standard UUID
-function isValidUUID(str: string): boolean {
-  if (!str || typeof str !== 'string') return false;
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str.trim());
-}
-
-// Database query helpers for ROMs
-// Persists or updates a ROM record in the Supabase 'roms' table
-async function setRomRecord(romId: string, data: any) {
-  // Resolve or generate a valid UUID identifier
-  let targetId = isValidUUID(romId) ? romId.trim() : undefined;
-
-  // If provided ID is not a UUID, check if a ROM with this name already exists in Supabase
-  if (!targetId && data.name) {
-    const existingByName = await getRomRecord(data.name);
-    if (existingByName && existingByName.id && isValidUUID(existingByName.id)) {
-      targetId = existingByName.id;
-    }
-  }
-
-  // Generate a new UUID if none exists
-  if (!targetId) {
-    targetId = crypto.randomUUID();
-  }
-
-  const existing = await getRomRecord(targetId);
-  const dbPayload = mapRomToDb(data);
-  dbPayload.id = targetId;
-  dbPayload.updated_at = new Date().toISOString();
-  
-  if (existing && existing.createdAt) {
-    dbPayload.created_at = existing.createdAt;
-  } else if (data.createdAt) {
-    dbPayload.created_at = data.createdAt;
-  } else if (!dbPayload.created_at) {
-    dbPayload.created_at = new Date().toISOString();
-  }
-
-  // Perform upsert into Supabase PostgreSQL 'roms' table
-  const { data: upsertedData, error } = await supabaseAdmin
-    .from('roms')
-    .upsert(dbPayload)
-    .select()
-    .single();
-
-  if (error) {
-    console.error('[Supabase setRomRecord Error]:', error.message);
-    throw error;
-  }
-  return mapRomToClient(upsertedData);
-}
-
-// Retrieves a single ROM record from Supabase by UUID or Name
-async function getRomRecord(romIdOrName: string) {
-  if (!romIdOrName) return null;
-  const clean = romIdOrName.trim();
-
-  // If query is a valid UUID, search by ID first
-  if (isValidUUID(clean)) {
-    const { data, error } = await supabaseAdmin
-      .from('roms')
-      .select('*')
-      .eq('id', clean)
-      .maybeSingle();
-
-    if (!error && data) {
-      return mapRomToClient(data);
-    }
-  }
-
-  // Fallback search by ROM Name in Supabase
-  const { data, error } = await supabaseAdmin
-    .from('roms')
-    .select('*')
-    .ilike('name', clean)
-    .maybeSingle();
-
-  if (error) {
-    console.warn('[Supabase getRomRecord by Name]:', error.message);
-    return null;
-  }
-  return mapRomToClient(data);
-}
-
-// Retrieves all ROM records from Supabase
-async function getAllRomRecords() {
-  const { data, error } = await supabaseAdmin
-    .from('roms')
-    .select('*')
-    .order('created_at', { ascending: false });
-  if (error) throw error;
-  return (data || []).map(mapRomToClient);
-}
-
-// Deletes a ROM record from Supabase by UUID or Name
-async function deleteRomRecord(romIdOrName: string) {
-  if (!romIdOrName) return;
-  let targetId = romIdOrName.trim();
-
-  if (!isValidUUID(targetId)) {
-    const existing = await getRomRecord(romIdOrName);
-    if (existing && existing.id) {
-      targetId = existing.id;
-    } else {
-      return; // Record not in Supabase database
-    }
-  }
-
-  const { error } = await supabaseAdmin
-    .from('roms')
-    .delete()
-    .eq('id', targetId);
-  if (error) throw error;
-}
-
-// In-memory feedback fallback cache
-const memoryFeedbackStore: any[] = [
-  {
-    id: 'fb-sample-1',
-    type: 'feature',
-    category: 'roms',
-    title: 'Add official RisingOS Android 15 v6.2 release',
-    description: 'The maintainer has released a new official build on Telegram with fastboot recovery support.',
-    contact: '@sky_tester',
-    deviceInfo: { screenSize: '1920x1080', platform: 'Linux x86_64' },
-    status: 'resolved',
-    adminResponse: 'Added to catalog in latest update.',
-    upvotes: 18,
-    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-    updatedAt: new Date(Date.now() - 86400000).toISOString()
-  },
-  {
-    id: 'fb-sample-2',
-    type: 'bug',
-    category: 'device_info',
-    title: 'Update Snapdragon 4 Gen 2 clock speeds',
-    description: 'CPU clock speed is 2x 2.20GHz Cortex-A78 and 6x 1.95GHz Cortex-A55.',
-    contact: 'contributor@poco.org',
-    deviceInfo: { screenSize: '390x844', platform: 'Android' },
-    status: 'resolved',
-    adminResponse: 'Corrected in device specs.',
-    upvotes: 9,
-    createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: 'fb-sample-3',
-    type: 'feature',
-    category: 'guide',
-    title: 'Provide Magisk root and KernelSU flashing matrix table',
-    description: 'A comparison table of KernelSU vs APatch vs Magisk compatibility for HyperOS 2.0 kernels.',
-    contact: 't.me/sky_root',
-    deviceInfo: { screenSize: '412x915', platform: 'Android' },
-    status: 'in_progress',
-    adminResponse: 'Work in progress by team documentation contributors.',
-    upvotes: 24,
-    createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-    updatedAt: new Date(Date.now() - 3600000 * 4).toISOString()
-  }
-];
-
 function mapFeedbackToClient(data: any) {
   if (!data) return null;
+  let rawDeviceInfo = data.device_info !== undefined ? data.device_info : (data.deviceInfo || null);
+  if (typeof rawDeviceInfo === 'string') {
+    try {
+      rawDeviceInfo = JSON.parse(rawDeviceInfo);
+    } catch {
+      // Keep as string
+    }
+  }
+
   return {
     id: data.id,
     type: data.type || 'general',
@@ -376,174 +194,46 @@ function mapFeedbackToClient(data: any) {
     title: data.title || '',
     description: data.description || '',
     contact: data.contact || null,
-    deviceInfo: data.device_info || data.deviceInfo || null,
+    deviceInfo: rawDeviceInfo,
     status: data.status || 'pending',
     adminResponse: data.admin_response || data.adminResponse || null,
-    upvotes: typeof data.upvotes === 'number' ? data.upvotes : (typeof data.upvote_count === 'number' ? data.upvote_count : 0),
-    ip: data.ip || null,
-    createdAt: data.created_at || data.createdAt || new Date().toISOString(),
-    updatedAt: data.updated_at || data.updatedAt || new Date().toISOString(),
+    upvotes: typeof data.upvotes === 'number' ? data.upvotes : 0,
+    createdAt: data.created_at || data.createdAt,
+    updatedAt: data.updated_at || data.updatedAt,
   };
 }
 
 function mapFeedbackToDb(data: any) {
   if (!data) return null;
+  const devInfo = data.deviceInfo !== undefined ? data.deviceInfo : data.device_info;
+  const formattedDevInfo = (typeof devInfo === 'object' && devInfo !== null) ? JSON.stringify(devInfo) : (devInfo || null);
   return {
     id: data.id,
-    type: data.type,
-    category: data.category,
-    title: data.title,
-    description: data.description,
-    contact: data.contact,
-    device_info: data.deviceInfo || data.device_info,
+    type: data.type || 'general',
+    category: data.category || 'general',
+    title: data.title || '',
+    description: data.description || '',
+    contact: data.contact || null,
+    device_info: formattedDevInfo,
     status: data.status || 'pending',
-    admin_response: data.adminResponse || data.admin_response,
+    admin_response: data.adminResponse || data.admin_response || null,
     upvotes: typeof data.upvotes === 'number' ? data.upvotes : 0,
     created_at: data.createdAt || data.created_at || new Date().toISOString(),
     updated_at: data.updatedAt || data.updated_at || new Date().toISOString(),
   };
 }
 
-async function getAllFeedbackRecords() {
-  try {
-    const { data, error } = await supabaseAdmin
-      .from('feedback')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (!error && Array.isArray(data) && data.length > 0) {
-      const dbRecords = data.map(mapFeedbackToClient);
-      // Merge with any memory entries not yet in DB
-      const dbIds = new Set(dbRecords.map((r: any) => r.id));
-      const unsyncedMemory = memoryFeedbackStore.filter(m => !dbIds.has(m.id));
-      return [...dbRecords, ...unsyncedMemory];
-    }
-  } catch (err) {
-    console.warn('[Supabase Feedback Query]:', err);
-  }
-  return [...memoryFeedbackStore];
-}
-
-async function saveFeedbackRecord(entry: any) {
-  // 1. Update in-memory store
-  const existingIdx = memoryFeedbackStore.findIndex(m => m.id === entry.id);
-  const clientEntry = mapFeedbackToClient(entry);
-  if (existingIdx >= 0) {
-    memoryFeedbackStore[existingIdx] = { ...memoryFeedbackStore[existingIdx], ...clientEntry };
-  } else {
-    memoryFeedbackStore.unshift(clientEntry);
-  }
-
-  // 2. Persist to Supabase
-  try {
-    const dbPayload = mapFeedbackToDb(entry);
-    const { data, error } = await supabaseAdmin
-      .from('feedback')
-      .upsert(dbPayload)
-      .select()
-      .maybeSingle();
-
-    if (!error && data) {
-      return mapFeedbackToClient(data);
-    }
-  } catch (err) {
-    console.warn('[Supabase Feedback Upsert Notice]:', err);
-  }
-
-  return clientEntry;
-}
-
-async function deleteFeedbackRecord(id: string) {
-  const idx = memoryFeedbackStore.findIndex(m => m.id === id);
-  if (idx >= 0) {
-    memoryFeedbackStore.splice(idx, 1);
-  }
-  try {
-    await supabaseAdmin
-      .from('feedback')
-      .delete()
-      .eq('id', id);
-  } catch (err) {
-    console.warn('[Supabase Feedback Delete Notice]:', err);
-  }
-}
-
-async function setAdminRecord(uid: string, data: any) {
-  // Always merge with the existing record before upserting.
-  // Admin actions such as approve/reject/deactivate only modify
-  // a subset of fields and must never erase required columns.
-  const { data: existingRecord, error: fetchError } = await supabaseAdmin
-    .from('admins')
-    .select('*')
-    .eq('id', uid)
-    .maybeSingle();
-
-  if (fetchError) throw fetchError;
-
-  const existingClientRecord = existingRecord
-    ? mapAdminToClient(existingRecord)
-    : {};
-
-  const mergedData = {
-    ...existingClientRecord,
-    ...data,
-    userId: uid,
-    id: uid,
-  };
-
-  const dbPayload = mapAdminToDb(mergedData);
-
-  // Preserve the canonical Auth email if the admins record doesn't
-  // already contain one. This is required because admins.email is NOT NULL.
-  if (!dbPayload.email) {
-    const { data: authUser, error: authError } =
-      await supabaseAdmin.auth.admin.getUserById(uid);
-
-    if (authError) throw authError;
-
-    const authEmail = authUser.user?.email?.trim().toLowerCase();
-
-    if (!authEmail) {
-      throw new Error(
-        `Cannot update administrator ${uid}: Supabase Auth user has no email address.`
-      );
-    }
-
-    dbPayload.email = authEmail;
-  }
-
-  dbPayload.id = uid;
-  dbPayload.updated_at = new Date().toISOString();
-
-  if (existingRecord) {
-    const { data: updatedData, error } = await supabaseAdmin
-      .from('admins')
-      .update(dbPayload)
-      .eq('id', uid)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return mapAdminToClient(updatedData);
-  } else {
-    const { data: upsertedData, error } = await supabaseAdmin
-      .from('admins')
-      .upsert(dbPayload)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return mapAdminToClient(upsertedData);
-  }
-}
+// Database Helpers
 
 async function getAdminRecord(uid: string) {
+  if (!isValidUUID(uid)) return null;
   const { data, error } = await supabaseAdmin
     .from('admins')
     .select('*')
     .eq('id', uid)
     .maybeSingle();
-  if (error) throw error;
+
+  if (error) throw new Error(`Database error fetching admin profile: ${error.message}`);
   return mapAdminToClient(data);
 }
 
@@ -554,39 +244,301 @@ async function getAdminRecordByEmail(email: string) {
     .select('*')
     .eq('email', clean)
     .maybeSingle();
-  if (error) throw error;
+
+  if (error) throw new Error(`Database error searching admin by email: ${error.message}`);
   return mapAdminToClient(data);
+}
+
+async function setAdminRecord(uid: string, data: any) {
+  if (!isValidUUID(uid)) {
+    throw new Error('Invalid user ID provided for admin record.');
+  }
+
+  const existingRecord = await getAdminRecord(uid);
+
+  const mergedData = {
+    ...(existingRecord || {}),
+    ...data,
+    userId: uid,
+    id: uid,
+  };
+
+  const dbPayload = mapAdminToDb(mergedData);
+
+  if (!dbPayload.email) {
+    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.getUserById(uid);
+    if (authError || !authUser.user?.email) {
+      throw new Error(`Cannot update admin ${uid}: Supabase Auth user email missing.`);
+    }
+    dbPayload.email = authUser.user.email.trim().toLowerCase();
+  }
+
+  dbPayload.id = uid;
+  dbPayload.updated_at = new Date().toISOString();
+
+  const { data: upsertedData, error } = await supabaseAdmin
+    .from('admins')
+    .upsert(dbPayload)
+    .select()
+    .single();
+
+  if (error) throw new Error(`Database error setting admin record: ${error.message}`);
+  return mapAdminToClient(upsertedData);
 }
 
 async function getAllAdminRecords() {
   const { data, error } = await supabaseAdmin
     .from('admins')
-    .select('*');
-  if (error) throw error;
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) throw new Error(`Database error listing admins: ${error.message}`);
   return (data || []).map(mapAdminToClient);
 }
 
 async function deleteAdminRecord(uid: string) {
+  if (!isValidUUID(uid)) return;
   const { error } = await supabaseAdmin
     .from('admins')
     .delete()
     .eq('id', uid);
-  if (error) throw error;
+
+  if (error) throw new Error(`Database error deleting admin record: ${error.message}`);
 }
 
-async function logAdminAction(adminUid: string, action: string, details: any) {
-  await supabaseAdmin.from('admin_logs').insert({
-    admin_uid: adminUid,
-    action,
-    details: details || {}
-  });
+async function logAdminAction(adminUid: string, action: string, details: any, ipAddress?: string) {
+  try {
+    let adminEmail: string | null = null;
+    if (isValidUUID(adminUid)) {
+      const admin = await getAdminRecord(adminUid);
+      adminEmail = admin?.email || null;
+    }
+
+    await supabaseAdmin.from('admin_logs').insert({
+      admin_uid: isValidUUID(adminUid) ? adminUid : null,
+      admin_email: adminEmail,
+      action: String(action).slice(0, 100),
+      details: details || {},
+      ip_address: ipAddress || null,
+    });
+  } catch (err: any) {
+    console.error('[Admin Log Warning]: Failed to insert log entry:', err.message);
+  }
 }
 
-// Superadmin Seeding Triggered on Startup
+async function getRomRecord(romIdOrName: string) {
+  if (!romIdOrName) return null;
+  const clean = romIdOrName.trim();
+
+  if (isValidUUID(clean)) {
+    const { data, error } = await supabaseAdmin
+      .from('roms')
+      .select('*')
+      .eq('id', clean)
+      .maybeSingle();
+
+    if (!error && data) return mapRomToClient(data);
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from('roms')
+    .select('*')
+    .ilike('name', clean)
+    .maybeSingle();
+
+  if (error) throw new Error(`Database error fetching ROM: ${error.message}`);
+  return mapRomToClient(data);
+}
+
+async function getAllRomRecords() {
+  const { data, error } = await supabaseAdmin
+    .from('roms')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) throw new Error(`Database error listing ROMs: ${error.message}`);
+  return (data || []).map(mapRomToClient);
+}
+
+async function setRomRecord(romId: string, data: any) {
+  let targetId = isValidUUID(romId) ? romId.trim() : undefined;
+
+  if (!targetId && data.name) {
+    const existingByName = await getRomRecord(data.name);
+    if (existingByName && existingByName.id && isValidUUID(existingByName.id)) {
+      targetId = existingByName.id;
+    }
+  }
+
+  if (!targetId) {
+    targetId = crypto.randomUUID();
+  }
+
+  const existing = await getRomRecord(targetId);
+  const dbPayload = mapRomToDb(data);
+  dbPayload.id = targetId;
+  dbPayload.updated_at = new Date().toISOString();
+
+  if (existing && existing.createdAt) {
+    dbPayload.created_at = existing.createdAt;
+  } else if (!dbPayload.created_at) {
+    dbPayload.created_at = new Date().toISOString();
+  }
+
+  const { data: upsertedData, error } = await supabaseAdmin
+    .from('roms')
+    .upsert(dbPayload)
+    .select()
+    .single();
+
+  if (error) throw new Error(`Database error saving ROM record: ${error.message}`);
+  return mapRomToClient(upsertedData);
+}
+
+async function deleteRomRecord(romIdOrName: string) {
+  if (!romIdOrName) return;
+  let targetId = romIdOrName.trim();
+
+  if (!isValidUUID(targetId)) {
+    const existing = await getRomRecord(romIdOrName);
+    if (existing && existing.id) {
+      targetId = existing.id;
+    } else {
+      return;
+    }
+  }
+
+  const { error } = await supabaseAdmin
+    .from('roms')
+    .delete()
+    .eq('id', targetId);
+
+  if (error) throw new Error(`Database error deleting ROM: ${error.message}`);
+}
+
+async function getAllFeedbackRecords() {
+  const { data, error } = await supabaseAdmin
+    .from('feedback')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) throw new Error(`Database error listing feedback: ${error.message}`);
+  return (data || []).map(mapFeedbackToClient).filter(Boolean);
+}
+
+async function saveFeedbackRecord(entry: any) {
+  const dbPayload = mapFeedbackToDb(entry);
+  const { data, error } = await supabaseAdmin
+    .from('feedback')
+    .upsert(dbPayload)
+    .select()
+    .single();
+
+  if (error) throw new Error(`Database error saving feedback: ${error.message}`);
+  return mapFeedbackToClient(data);
+}
+
+async function deleteFeedbackRecord(id: string) {
+  if (!isValidUUID(id)) return;
+  const { error } = await supabaseAdmin
+    .from('feedback')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw new Error(`Database error deleting feedback: ${error.message}`);
+}
+
+async function upvoteFeedbackRecord(id: string, voterKey: string, action: 'upvote' | 'downvote' | 'toggle') {
+  if (!isValidUUID(id)) {
+    throw new Error('Invalid feedback ID');
+  }
+
+  // Check if existing feedback exists
+  const { data: existing, error: existingErr } = await supabaseAdmin
+    .from('feedback')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (existingErr || !existing) {
+    throw new Error('Feedback item not found');
+  }
+
+  // Check if voter has already voted in feedback_votes
+  const { data: existingVote, error: voteErr } = await supabaseAdmin
+    .from('feedback_votes')
+    .select('*')
+    .eq('feedback_id', id)
+    .eq('voter_key', voterKey)
+    .maybeSingle();
+
+  if (voteErr && voteErr.code !== 'PGRST116') {
+    console.warn('[Feedback Vote Lookup Warning]:', voteErr.message);
+  }
+
+  let userHasVoted = !!existingVote;
+
+  if (action === 'downvote' || (action === 'toggle' && userHasVoted)) {
+    if (userHasVoted) {
+      await supabaseAdmin
+        .from('feedback_votes')
+        .delete()
+        .eq('feedback_id', id)
+        .eq('voter_key', voterKey);
+    }
+  } else {
+    // Upvote requested
+    if (userHasVoted) {
+      // User has already voted - return current count, do not double-count
+      return { feedback: mapFeedbackToClient(existing), voted: true, message: 'Already voted' };
+    }
+    // Insert new vote record
+    await supabaseAdmin
+      .from('feedback_votes')
+      .insert({
+        feedback_id: id,
+        voter_key: voterKey,
+        vote_type: 'upvote',
+        created_at: new Date().toISOString()
+      });
+  }
+
+  // Recalculate total votes count atomically from feedback_votes table
+  const { count, error: countErr } = await supabaseAdmin
+    .from('feedback_votes')
+    .select('feedback_id', { count: 'exact', head: true })
+    .eq('feedback_id', id);
+
+  const newUpvoteCount = typeof count === 'number' ? count : Math.max(0, (existing.upvotes || 0) + (userHasVoted ? -1 : 1));
+
+  // Update public.feedback upvotes
+  const { data: updated, error: updateErr } = await supabaseAdmin
+    .from('feedback')
+    .update({
+      upvotes: newUpvoteCount,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (updateErr) {
+    console.error('[Feedback Upvote Update Error]:', updateErr.message);
+  }
+
+  return {
+    feedback: mapFeedbackToClient(updated || existing),
+    upvotes: newUpvoteCount,
+    voted: !userHasVoted,
+    message: 'Vote updated successfully'
+  };
+}
+
+// Initial Superadmin Seeding on Startup
 const INITIAL_SUPERADMIN_UID = 'b847cc2e-74b5-4b1f-bd21-a3c6d717973e';
 
 async function seedInitialSuperadmin() {
-  if (!isValidKey(supabaseServiceKey)) {
+  if (!supabaseUrl || !isValidKey(supabaseServiceKey)) {
     return;
   }
   try {
@@ -597,8 +549,6 @@ async function seedInitialSuperadmin() {
       .maybeSingle();
 
     if (!existingAdmin) {
-      console.log(`[Superadmin Seed] Superadmin database record not found. Seeding: ${INITIAL_SUPERADMIN_UID}`);
-      
       const payload = {
         id: INITIAL_SUPERADMIN_UID,
         email: 'admin@skyroms.com',
@@ -613,32 +563,38 @@ async function seedInitialSuperadmin() {
 
       const { error: insertError } = await supabaseAdmin.from('admins').insert(payload);
       if (insertError) {
-        console.warn('[Superadmin Seed Error]:', insertError.message);
-      } else {
-        console.log(`[Superadmin Seed] Successfully seeded superadmin admins record for ${INITIAL_SUPERADMIN_UID}`);
+        console.warn('[Superadmin Seed Notice]:', insertError.message);
       }
-    } else {
-      console.log(`[Superadmin Seed] Superadmin record ${INITIAL_SUPERADMIN_UID} is already initialized.`);
     }
   } catch (err: any) {
-    console.warn(`[Superadmin Seed Error]: ${err.message}`);
+    console.warn('[Superadmin Seed Error]:', err.message);
   }
 }
 
-// Run superadmin seed on boot
-seedInitialSuperadmin().catch(err => console.error('[Startup Seed failure]:', err));
+seedInitialSuperadmin().catch(() => {});
 
+// Rate Limiters
 const registrationLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 10,
-  message: { error: 'Too many registration attempts, please try again later.' },
+  message: { error: 'Too many registration attempts from this IP, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
+const feedbackLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: { error: 'Too many feedback submissions, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Authentication Token Resolver
 async function resolveToken(token: string) {
   if (!token || token === 'undefined' || token === 'null' || token.trim() === '') return null;
   try {
+    ensureSupabaseConfig();
     const { data: { user }, error } = await supabaseAdmin.auth.getUser(token.trim());
     if (error || !user) {
       return null;
@@ -649,7 +605,8 @@ async function resolveToken(token: string) {
   }
 }
 
-async function verifySuperAdmin(req: any, res: any, next: any) {
+// Authoritative Middlewares
+async function verifyAdmin(req: any, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Missing or malformed authorization header.' });
@@ -658,43 +615,16 @@ async function verifySuperAdmin(req: any, res: any, next: any) {
   try {
     const user = await resolveToken(token);
     if (!user) {
-      return res.status(401).json({ error: 'Authentication failed: Invalid or expired token.' });
-    }
-    
-    const admin = await getAdminRecord(user.uid);
-    if (!admin || admin.active !== true) {
-      return res.status(403).json({ error: 'Access denied. Administrator privileges required.' });
+      return res.status(401).json({ error: 'Authentication failed: Invalid or expired session token.' });
     }
 
-    if (admin.role === 'superadmin' && admin.active === true && admin.approvalStatus === 'approved') {
-      req.userUid = user.uid;
-      req.email = user.email;
-      req.isSuperAdmin = true;
-      req.adminProfile = admin;
-      next();
-    } else {
-      res.status(403).json({ error: 'Access denied. Superadmin privileges required.' });
-    }
-  } catch (e: any) {
-    res.status(500).json({ error: `Server error during authorization: ${e.message}` });
-  }
-}
-
-async function verifyAdmin(req: any, res: any, next: any) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Missing or malformed authorization header.' });
-  }
-  const token = authHeader.split('Bearer ')[1];
-  try {
-    const user = await resolveToken(token);
-    if (!user) {
-      return res.status(401).json({ error: 'Authentication failed: Invalid or expired token.' });
-    }
-    
     const admin = await getAdminRecord(user.uid);
-    if (!admin || admin.active !== true || admin.approvalStatus !== 'approved') {
-      return res.status(403).json({ error: 'Access denied. Approved administrator privileges required.' });
+    if (!admin) {
+      return res.status(403).json({ error: 'Access denied. Administrator profile not found.' });
+    }
+
+    if (admin.active !== true || admin.approvalStatus !== 'approved') {
+      return res.status(403).json({ error: 'Access denied. Account is inactive or awaiting approval.' });
     }
 
     const allowedRoles = ['maintainer', 'developer', 'moderator', 'admin', 'superadmin'];
@@ -702,38 +632,99 @@ async function verifyAdmin(req: any, res: any, next: any) {
       return res.status(403).json({ error: 'Access denied. Invalid administrator role.' });
     }
 
-    const isSuper = admin.role === 'superadmin';
     req.userUid = user.uid;
-    req.email = user.email;
-    req.isSuperAdmin = isSuper;
+    req.email = admin.email || user.email;
     req.adminProfile = admin;
+    req.isSuperAdmin = (admin.role === 'superadmin' || admin.isSuperAdmin === true);
     next();
   } catch (e: any) {
-    res.status(500).json({ error: `Server error during authorization: ${e.message}` });
+    return res.status(500).json({ error: e.message || 'Server error during authorization.' });
   }
 }
 
-// Health check
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok', supabaseConnected: !!supabaseUrl });
+async function verifySuperAdmin(req: any, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Missing or malformed authorization header.' });
+  }
+  const token = authHeader.split('Bearer ')[1];
+  try {
+    const user = await resolveToken(token);
+    if (!user) {
+      return res.status(401).json({ error: 'Authentication failed: Invalid or expired session token.' });
+    }
+
+    const admin = await getAdminRecord(user.uid);
+    if (!admin) {
+      return res.status(403).json({ error: 'Access denied. Superadmin profile not found.' });
+    }
+
+    if (admin.active !== true || admin.approvalStatus !== 'approved') {
+      return res.status(403).json({ error: 'Access denied. Superadmin account is inactive or not approved.' });
+    }
+
+    if (admin.role === 'superadmin' || admin.isSuperAdmin === true) {
+      req.userUid = user.uid;
+      req.email = admin.email || user.email;
+      req.adminProfile = admin;
+      req.isSuperAdmin = true;
+      next();
+    } else {
+      return res.status(403).json({ error: 'Access denied. Superadmin privileges required.' });
+    }
+  } catch (e: any) {
+    return res.status(500).json({ error: e.message || 'Server error during superadmin authorization.' });
+  }
+}
+
+// Routes
+
+// 1. Health Endpoint with real database connectivity check
+app.get('/api/health', async (req: Request, res: Response) => {
+  if (!supabaseUrl || !isValidKey(supabaseServiceKey)) {
+    return res.status(503).json({
+      status: 'unhealthy',
+      supabaseConnected: false,
+      error: 'Supabase service role credentials are missing or invalid.'
+    });
+  }
+
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('profiles')
+      .select('id')
+      .limit(1);
+
+    if (error) {
+      return res.status(503).json({
+        status: 'degraded',
+        supabaseConnected: false,
+        error: 'Supabase database query failed.'
+      });
+    }
+
+    return res.status(200).json({
+      status: 'ok',
+      supabaseConnected: true,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err: any) {
+    return res.status(503).json({
+      status: 'unhealthy',
+      supabaseConnected: false,
+      error: 'Failed to connect to Supabase database.'
+    });
+  }
 });
 
-// Dynamic Sitemap Endpoint
-app.get('/sitemap.xml', async (req, res) => {
+// 2. Dynamic Sitemap
+app.get('/sitemap.xml', async (req: Request, res: Response) => {
   try {
     const roms = await getAllRomRecords();
     const domain = 'https://sky-roms.vercel.app';
-    const staticUrls = [
-      '',
-      '/roms',
-      '/guides',
-      '/team',
-      '/faq',
-      '/status'
-    ];
+    const staticUrls = ['', '/roms', '/guides', '/team', '/faq', '/status'];
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
-    
     staticUrls.forEach(path => {
       xml += `  <url>\n    <loc>${domain}${path}</loc>\n    <changefreq>daily</changefreq>\n    <priority>${path === '' ? '1.0' : '0.8'}</priority>\n  </url>\n`;
     });
@@ -752,12 +743,12 @@ app.get('/sitemap.xml', async (req, res) => {
   }
 });
 
-// Dynamic RSS Feed Endpoint
-app.get('/feed.xml', async (req, res) => {
+// 3. Dynamic RSS Feed
+app.get('/feed.xml', async (req: Request, res: Response) => {
   try {
     const roms = await getAllRomRecords();
     const domain = 'https://sky-roms.vercel.app';
-    
+
     let xml = `<?xml version="1.0" encoding="UTF-8" ?>\n<rss version="2.0">\n  <channel>\n`;
     xml += `    <title>SKY ROM Ecosystem Releases</title>\n`;
     xml += `    <link>${domain}/roms</link>\n`;
@@ -784,10 +775,8 @@ app.get('/feed.xml', async (req, res) => {
   }
 });
 
-// Admin routes mapping
-
-// Get Current Admin
-app.get('/api/admin/me', async (req, res) => {
+// 4. Admin Me Endpoint
+app.get('/api/admin/me', async (req: Request, res: Response) => {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Missing or malformed authorization header.' });
@@ -796,52 +785,61 @@ app.get('/api/admin/me', async (req, res) => {
   try {
     const user = await resolveToken(token);
     if (!user) {
-      return res.status(401).json({ error: 'Invalid or expired token.' });
+      return res.status(401).json({ error: 'Invalid or expired session token.' });
     }
     const admin = await getAdminRecord(user.uid);
-
-    if (admin) {
-      // Validate that the user role belongs to our recognized schema roles (including pending status)
-      const allowedRoles = ['pending', 'maintainer', 'developer', 'moderator', 'admin', 'superadmin'];
-      if (!allowedRoles.includes(admin.role)) {
-        return res.status(403).json({ error: 'Access denied. Invalid administrator role.' });
-      }
-      return res.status(200).json({ success: true, admin });
+    if (!admin) {
+      return res.status(404).json({ error: 'Admin profile not found.' });
     }
-    return res.status(404).json({ error: 'Admin profile not found.' });
+
+    const allowedRoles = ['pending', 'maintainer', 'developer', 'moderator', 'admin', 'superadmin'];
+    if (!allowedRoles.includes(admin.role)) {
+      return res.status(403).json({ error: 'Access denied. Invalid administrator role.' });
+    }
+    return res.status(200).json({ success: true, admin });
   } catch (e: any) {
-    return res.status(500).json({ error: `Authentication failed: ${e.message}` });
+    return res.status(500).json({ error: e.message || 'Authentication failed.' });
   }
 });
 
-// Log Action
-app.post('/api/admin/log', verifyAdmin, async (req: any, res) => {
+// 5. Admin Log Action
+app.post('/api/admin/log', verifyAdmin, async (req: any, res: Response) => {
   const { action, details } = req.body;
+  if (!action || typeof action !== 'string') {
+    return res.status(400).json({ error: 'Action string is required.' });
+  }
   try {
-    await logAdminAction(req.userUid, action, details);
+    const ip = (req.headers['x-forwarded-for'] as string) || req.ip;
+    await logAdminAction(req.userUid, action, details, ip);
     return res.status(200).json({ success: true });
   } catch (e: any) {
-    return res.status(500).json({ error: e.message });
+    return res.status(500).json({ error: e.message || 'Failed to record audit log.' });
   }
 });
 
-// Register Admin
-app.post('/api/admin/register', registrationLimiter, async (req, res) => {
+// 6. Admin Registration (Atomic Rollback)
+app.post('/api/admin/register', registrationLimiter, async (req: Request, res: Response) => {
   const { email, password, name, username, telegramUsername } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Email and password are required.' });
+
+  if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    return res.status(400).json({ error: 'A valid email address is required.' });
   }
 
-  if (password.length < 8) {
+  if (!password || typeof password !== 'string' || password.length < 8) {
     return res.status(400).json({ error: 'Password must be at least 8 characters long.' });
   }
 
+  const cleanEmail = email.trim().toLowerCase();
+  const displayName = (typeof name === 'string' && name.trim()) ? name.trim() : cleanEmail.split('@')[0];
+  const displayUsername = (typeof username === 'string' && username.trim()) ? username.trim() : cleanEmail.split('@')[0];
+  const displayTelegram = (typeof telegramUsername === 'string' && telegramUsername.trim()) ? telegramUsername.trim() : '';
+
   try {
-    const cleanEmail = email.trim().toLowerCase();
-    
+    ensureSupabaseConfig();
+
     // 1. Check if record already exists in public.admins
-    const existingAdminDoc = await getAdminRecordByEmail(cleanEmail);
-    if (existingAdminDoc) {
+    const existingAdmin = await getAdminRecordByEmail(cleanEmail);
+    if (existingAdmin) {
       return res.status(409).json({ error: 'An account with this email already exists.' });
     }
 
@@ -850,385 +848,271 @@ app.post('/api/admin/register', registrationLimiter, async (req, res) => {
       email: cleanEmail,
       password: password,
       email_confirm: true,
-      user_metadata: { name: name?.trim() || 'Admin' }
+      user_metadata: { name: displayName }
     });
 
     if (authError || !authData?.user) {
-      console.error('[Supabase Auth Admin Error] Failed to create auth user:', authError?.message);
-      return res.status(500).json({ error: 'Failed to create user in Auth database: ' + (authError?.message || 'Unknown error') });
+      console.error('[Supabase Auth Registration Error]:', authError?.message);
+      return res.status(500).json({ error: `Registration failed: ${authError?.message || 'Failed to create auth user.'}` });
     }
 
     const userUid = authData.user.id;
-    const displayName = name?.trim() || cleanEmail.split('@')[0];
-    const displayUsername = username?.trim() || cleanEmail.split('@')[0];
 
-    // 3. Create profile record
-    await supabaseAdmin.from('profiles').insert({
-      id: userUid,
-      email: cleanEmail,
-      display_name: displayName,
-      username: displayUsername
-    });
-
-    // 4. Create Admin record in admins table
-    // Always force unprivileged defaults for new registrations: role="pending", active=false, approvalStatus="pending", isSuperAdmin=false
-    await setAdminRecord(userUid, {
-      userId: userUid,
-      name: displayName,
-      displayName: displayName,
-      email: cleanEmail,
-      username: displayUsername,
-      telegramUsername: telegramUsername?.trim() || '',
-      role: 'pending',
-      active: false,
-      approvalStatus: 'pending',
-      isSuperAdmin: false,
-    });
-
+    // 3. Create profile & admin records with ATOMIC ROLLBACK ON FAILURE
     try {
-      await logAdminAction(userUid, 'REGISTER_ADMIN', { email: cleanEmail, role: 'pending', active: false, approvalStatus: 'pending' });
-    } catch (logErr: any) {
-      console.warn('[Admin Log Warning]:', logErr.message);
-    }
+      // Step A: Insert into public.profiles
+      const { error: profileErr } = await supabaseAdmin.from('profiles').insert({
+        id: userUid,
+        email: cleanEmail,
+        display_name: displayName,
+        username: displayUsername
+      });
 
-    return res.status(200).json({
-      success: true,
-      uid: userUid,
-      isSuperAdmin: false,
-      message: 'Registration submitted successfully. Awaiting approval.'
-    });
+      if (profileErr) throw profileErr;
+
+      // Step B: Insert into public.admins with STRICT UNPRIVILEGED DEFAULTS
+      await setAdminRecord(userUid, {
+        userId: userUid,
+        name: displayName,
+        displayName: displayName,
+        email: cleanEmail,
+        username: displayUsername,
+        telegramUsername: displayTelegram,
+        role: 'pending',
+        active: false,
+        approvalStatus: 'pending',
+        isSuperAdmin: false,
+      });
+
+      const ip = (req.headers['x-forwarded-for'] as string) || req.ip;
+      await logAdminAction(userUid, 'REGISTER_ADMIN', { email: cleanEmail, role: 'pending', active: false }, ip);
+
+      return res.status(200).json({
+        success: true,
+        uid: userUid,
+        isSuperAdmin: false,
+        message: 'Registration submitted successfully. Awaiting superadmin approval.'
+      });
+    } catch (dbError: any) {
+      console.error('[Registration Rollback Triggered]:', dbError.message);
+      // Clean up newly created auth user and profile row if either step failed
+      await supabaseAdmin.from('profiles').delete().eq('id', userUid).catch(() => {});
+      await supabaseAdmin.auth.admin.deleteUser(userUid).catch(() => {});
+
+      return res.status(500).json({
+        error: `Registration failed during profile creation. Account rolled back: ${dbError.message}`
+      });
+    }
   } catch (error: any) {
-    console.error('Registration Error:', error.message);
-    return res.status(500).json({ error: error.message || 'Registration failed.' });
+    console.error('[Registration Handler Error]:', error.message);
+    return res.status(500).json({ error: error.message || 'Registration process failed.' });
   }
 });
 
-// Get Admins / Requests (Superadmin only)
-app.get('/api/admin/admins', verifySuperAdmin, async (req, res) => {
+// 7. Get Admins List (Superadmin only)
+app.get('/api/admin/admins', verifySuperAdmin, async (req: Request, res: Response) => {
   try {
     const admins = await getAllAdminRecords();
     return res.status(200).json({ success: true, admins });
   } catch (e: any) {
-    return res.status(500).json({ error: e.message });
+    return res.status(500).json({ error: e.message || 'Failed to fetch admin list.' });
   }
 });
 
-app.get('/api/admin/requests', verifySuperAdmin, async (req, res) => {
+// 8. Get Pending Registration Requests (Superadmin only)
+app.get('/api/admin/requests', verifySuperAdmin, async (req: Request, res: Response) => {
   try {
     const all = await getAllAdminRecords();
     const requests = all.filter((a: any) => a.approvalStatus === 'pending');
     return res.status(200).json({ success: true, requests });
   } catch (e: any) {
-    return res.status(500).json({ error: e.message });
+    return res.status(500).json({ error: e.message || 'Failed to fetch registration requests.' });
   }
 });
 
-// Allowed assignable roles for superadmin approval (superadmin cannot be assigned via normal approval)
 const ALLOWED_ASSIGNABLE_ROLES = ['maintainer', 'developer', 'moderator'];
 
-// Approve Admin
-app.post('/api/admin/approve', verifySuperAdmin, async (req: any, res) => {
+// 9. Approve Admin Request (Superadmin only)
+app.post('/api/admin/approve', verifySuperAdmin, async (req: any, res: Response) => {
   const adminId = req.body.adminId || req.body.adminUid;
   const assignedRole = req.body.role || req.body.assignedRole;
 
-  if (!adminId) return res.status(400).json({ error: 'Admin ID required.' });
+  if (!adminId || !isValidUUID(adminId)) {
+    return res.status(400).json({ error: 'Valid Admin ID required.' });
+  }
 
   if (!assignedRole || !ALLOWED_ASSIGNABLE_ROLES.includes(assignedRole)) {
-    return res.status(400).json({ 
-      error: `Invalid or unallowed role '${assignedRole}'. Allowed assignable roles: ${ALLOWED_ASSIGNABLE_ROLES.join(', ')}` 
+    return res.status(400).json({
+      error: `Invalid assigned role '${assignedRole}'. Allowed assignable roles: ${ALLOWED_ASSIGNABLE_ROLES.join(', ')}`
     });
   }
 
   try {
-    await setAdminRecord(adminId, {
+    const updated = await setAdminRecord(adminId, {
       approvalStatus: 'approved',
       active: true,
       role: assignedRole,
       isSuperAdmin: false,
     });
-    await logAdminAction(req.userUid, 'APPROVE_ADMIN', { adminId, role: assignedRole });
-    return res.status(200).json({ success: true, message: `Administrator approved successfully with role: ${assignedRole}` });
+
+    const ip = (req.headers['x-forwarded-for'] as string) || req.ip;
+    await logAdminAction(req.userUid, 'APPROVE_ADMIN', { adminId, role: assignedRole }, ip);
+
+    return res.status(200).json({
+      success: true,
+      admin: updated,
+      message: `Administrator approved successfully with role: ${assignedRole}`
+    });
   } catch (e: any) {
-    return res.status(500).json({ error: e.message });
+    return res.status(500).json({ error: e.message || 'Failed to approve administrator.' });
   }
 });
 
-// Reject Admin
-app.post('/api/admin/reject', verifySuperAdmin, async (req: any, res) => {
+// 10. Reject Admin Request (Superadmin only)
+app.post('/api/admin/reject', verifySuperAdmin, async (req: any, res: Response) => {
   const adminId = req.body.adminId || req.body.adminUid;
-  if (!adminId) return res.status(400).json({ error: 'Admin ID required.' });
+  if (!adminId || !isValidUUID(adminId)) {
+    return res.status(400).json({ error: 'Valid Admin ID required.' });
+  }
+
   try {
-    await setAdminRecord(adminId, {
+    const updated = await setAdminRecord(adminId, {
       approvalStatus: 'rejected',
       active: false,
     });
-    await logAdminAction(req.userUid, 'REJECT_ADMIN', { adminId });
-    return res.status(200).json({ success: true });
+
+    const ip = (req.headers['x-forwarded-for'] as string) || req.ip;
+    await logAdminAction(req.userUid, 'REJECT_ADMIN', { adminId }, ip);
+
+    return res.status(200).json({ success: true, admin: updated });
   } catch (e: any) {
-    return res.status(500).json({ error: e.message });
+    return res.status(500).json({ error: e.message || 'Failed to reject administrator.' });
   }
 });
 
-// Deactivate Admin
-app.post('/api/admin/deactivate', verifySuperAdmin, async (req: any, res) => {
+// 11. Deactivate Admin (Superadmin only)
+app.post('/api/admin/deactivate', verifySuperAdmin, async (req: any, res: Response) => {
   const adminId = req.body.adminId || req.body.adminUid;
-  if (!adminId) return res.status(400).json({ error: 'Admin ID required.' });
+  if (!adminId || !isValidUUID(adminId)) {
+    return res.status(400).json({ error: 'Valid Admin ID required.' });
+  }
+
+  if (adminId === req.userUid) {
+    return res.status(400).json({ error: 'You cannot deactivate your own superadmin account.' });
+  }
+
   try {
-    await setAdminRecord(adminId, {
+    const updated = await setAdminRecord(adminId, {
       active: false,
     });
-    await logAdminAction(req.userUid, 'DEACTIVATE_ADMIN', { adminId });
-    return res.status(200).json({ success: true });
+
+    const ip = (req.headers['x-forwarded-for'] as string) || req.ip;
+    await logAdminAction(req.userUid, 'DEACTIVATE_ADMIN', { adminId }, ip);
+
+    return res.status(200).json({ success: true, admin: updated });
   } catch (e: any) {
-    return res.status(500).json({ error: e.message });
+    return res.status(500).json({ error: e.message || 'Failed to deactivate administrator.' });
   }
 });
 
-// Reactivate Admin
-app.post('/api/admin/reactivate', verifySuperAdmin, async (req: any, res) => {
+// 12. Reactivate Admin (Superadmin only)
+app.post('/api/admin/reactivate', verifySuperAdmin, async (req: any, res: Response) => {
   const adminId = req.body.adminId || req.body.adminUid;
-  if (!adminId) return res.status(400).json({ error: 'Admin ID required.' });
+  if (!adminId || !isValidUUID(adminId)) {
+    return res.status(400).json({ error: 'Valid Admin ID required.' });
+  }
+
   try {
-    await setAdminRecord(adminId, {
+    const updated = await setAdminRecord(adminId, {
       active: true,
       approvalStatus: 'approved',
     });
-    await logAdminAction(req.userUid, 'REACTIVATE_ADMIN', { adminId });
-    return res.status(200).json({ success: true });
+
+    const ip = (req.headers['x-forwarded-for'] as string) || req.ip;
+    await logAdminAction(req.userUid, 'REACTIVATE_ADMIN', { adminId }, ip);
+
+    return res.status(200).json({ success: true, admin: updated });
   } catch (e: any) {
-    return res.status(500).json({ error: e.message });
+    return res.status(500).json({ error: e.message || 'Failed to reactivate administrator.' });
   }
 });
 
-// Delete Admin
-app.post('/api/admin/delete-admin', verifySuperAdmin, async (req: any, res) => {
+// 13. Delete Admin (Superadmin only)
+app.post('/api/admin/delete-admin', verifySuperAdmin, async (req: any, res: Response) => {
   const adminId = req.body.adminId || req.body.adminUid;
-  if (!adminId) return res.status(400).json({ error: 'Admin ID required.' });
+  if (!adminId || !isValidUUID(adminId)) {
+    return res.status(400).json({ error: 'Valid Admin ID required.' });
+  }
+
+  if (adminId === req.userUid) {
+    return res.status(400).json({ error: 'You cannot delete your own superadmin account.' });
+  }
+
   try {
     await deleteAdminRecord(adminId);
-    // Delete from auth.users as well
-    await supabaseAdmin.auth.admin.deleteUser(adminId);
-    await logAdminAction(req.userUid, 'DELETE_ADMIN', { adminId });
-    return res.status(200).json({ success: true });
+    await supabaseAdmin.from('profiles').delete().eq('id', adminId).catch(() => {});
+    await supabaseAdmin.auth.admin.deleteUser(adminId).catch(() => {});
+
+    const ip = (req.headers['x-forwarded-for'] as string) || req.ip;
+    await logAdminAction(req.userUid, 'DELETE_ADMIN', { adminId }, ip);
+
+    return res.status(200).json({ success: true, message: 'Admin deleted successfully.' });
   } catch (e: any) {
-    return res.status(500).json({ error: e.message });
+    return res.status(500).json({ error: e.message || 'Failed to delete administrator.' });
   }
 });
 
-// Admin Logs (Superadmin only)
-app.get('/api/admin/logs', verifySuperAdmin, async (req, res) => {
+// 14. Admin Security Logs (Superadmin only)
+app.get('/api/admin/logs', verifySuperAdmin, async (req: Request, res: Response) => {
   try {
     const { data: logs, error } = await supabaseAdmin
       .from('admin_logs')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(100);
-    
-    if (error) throw error;
-    
+
+    if (error) throw new Error(`Database error fetching logs: ${error.message}`);
+
     const formattedLogs = (logs || []).map(log => ({
       id: log.id,
       adminUid: log.admin_uid,
       adminEmail: log.admin_email,
       action: log.action,
       details: log.details,
+      ipAddress: log.ip_address,
       timestamp: log.created_at
     }));
 
     return res.status(200).json({ success: true, logs: formattedLogs });
   } catch (e: any) {
-    return res.status(500).json({ error: `Failed to fetch logs: ${e.message}` });
+    return res.status(500).json({ error: e.message || 'Failed to fetch audit logs.' });
   }
 });
 
-// Public ROMs API: Retrieve all ROM records from Supabase database
-app.get('/api/roms', async (req, res) => {
+// 15. Public ROMs API
+app.get('/api/roms', async (req: Request, res: Response) => {
   try {
     const roms = await getAllRomRecords();
     return res.status(200).json({ success: true, roms });
   } catch (e: any) {
-    console.error('[Public Get ROMs Error]:', e);
-    return res.status(500).json({ error: e.message || 'Failed to fetch ROMs' });
+    return res.status(500).json({ error: e.message || 'Failed to fetch ROMs list.' });
   }
 });
 
-// Public single ROM API: Retrieve by ID or Name
-app.get('/api/roms/:idOrName', async (req, res) => {
+// 16. Public Single ROM API
+app.get('/api/roms/:idOrName', async (req: Request, res: Response) => {
   try {
     const rom = await getRomRecord(req.params.idOrName);
     if (!rom) {
-      return res.status(404).json({ error: 'ROM not found' });
+      return res.status(404).json({ error: 'ROM not found in catalog.' });
     }
     return res.status(200).json({ success: true, rom });
   } catch (e: any) {
-    console.error('[Public Get ROM Error]:', e);
-    return res.status(500).json({ error: e.message || 'Failed to fetch ROM' });
+    return res.status(500).json({ error: e.message || 'Failed to fetch ROM details.' });
   }
 });
 
-// Public feedback endpoint for user bug reports and feature requests
-app.post('/api/feedback', async (req, res) => {
-  try {
-    const { type, title, description, category, contact, deviceInfo } = req.body;
-    if (!title || !description) {
-      return res.status(400).json({ error: 'Title and description are required.' });
-    }
-
-    const feedbackEntry = {
-      id: crypto.randomUUID(),
-      type: type || 'general',
-      category: category || 'general',
-      title: String(title).slice(0, 200),
-      description: String(description).slice(0, 2000),
-      contact: contact ? String(contact).slice(0, 100) : null,
-      deviceInfo: deviceInfo || null,
-      status: 'pending',
-      adminResponse: null,
-      upvotes: 1, // Author automatically gives initial upvote
-      ip: req.ip || req.headers['x-forwarded-for'] || null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    console.log(`[User Feedback Received]: [${feedbackEntry.type.toUpperCase()}] ${feedbackEntry.title}`, feedbackEntry);
-
-    const saved = await saveFeedbackRecord(feedbackEntry);
-
-    return res.status(200).json({
-      success: true,
-      id: saved.id,
-      feedback: saved,
-      message: 'Thank you! Your feedback has been recorded successfully.'
-    });
-  } catch (e: any) {
-    console.error('[Feedback Submission Error]:', e);
-    return res.status(500).json({ error: e.message || 'Failed to submit feedback' });
-  }
-});
-
-// Public: Browse community feedback entries for support and upvoting
-app.get('/api/feedback', async (req, res) => {
-  try {
-    const all = await getAllFeedbackRecords();
-    // Return sanitized public list (hide IP, protect contact details)
-    const publicList = all.map((f: any) => ({
-      id: f.id,
-      type: f.type,
-      category: f.category,
-      title: f.title,
-      description: f.description,
-      status: f.status,
-      adminResponse: f.adminResponse,
-      upvotes: typeof f.upvotes === 'number' ? f.upvotes : 0,
-      createdAt: f.createdAt,
-      updatedAt: f.updatedAt
-    }));
-    return res.status(200).json({ success: true, feedback: publicList });
-  } catch (e: any) {
-    console.error('[Public Feedback Fetch Error]:', e);
-    return res.status(500).json({ error: e.message || 'Failed to load feedback entries' });
-  }
-});
-
-// Public: Upvote or toggle vote on a feedback entry
-app.post('/api/feedback/:id/upvote', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { action } = req.body; // 'upvote' | 'downvote' | 'toggle'
-    const all = await getAllFeedbackRecords();
-    const existing = all.find((f: any) => f.id === id);
-
-    if (!existing) {
-      return res.status(404).json({ error: 'Feedback entry not found' });
-    }
-
-    const currentVotes = typeof existing.upvotes === 'number' ? existing.upvotes : 0;
-    let nextVotes = currentVotes;
-
-    if (action === 'downvote') {
-      nextVotes = Math.max(0, currentVotes - 1);
-    } else {
-      nextVotes = currentVotes + 1;
-    }
-
-    const updated = {
-      ...existing,
-      upvotes: nextVotes,
-      updatedAt: new Date().toISOString()
-    };
-
-    const saved = await saveFeedbackRecord(updated);
-
-    return res.status(200).json({
-      success: true,
-      id,
-      upvotes: saved.upvotes || nextVotes,
-      message: 'Vote recorded successfully'
-    });
-  } catch (e: any) {
-    console.error('[Feedback Upvote Error]:', e);
-    return res.status(500).json({ error: e.message || 'Failed to process upvote' });
-  }
-});
-
-// Admin: List all feedback records from Supabase
-app.get('/api/admin/feedback', verifyAdmin, async (req: any, res) => {
-  try {
-    const feedbackList = await getAllFeedbackRecords();
-    return res.status(200).json({ success: true, count: feedbackList.length, feedback: feedbackList });
-  } catch (e: any) {
-    console.error('[Admin Feedback Fetch Error]:', e);
-    return res.status(500).json({ error: e.message || 'Failed to fetch feedback entries' });
-  }
-});
-
-// Admin: Update feedback status or response
-app.patch('/api/admin/feedback/:id', verifyAdmin, async (req: any, res) => {
-  try {
-    const { id } = req.params;
-    const { status, adminResponse } = req.body;
-
-    const all = await getAllFeedbackRecords();
-    const existing = all.find((f: any) => f.id === id);
-
-    if (!existing) {
-      return res.status(404).json({ error: 'Feedback record not found.' });
-    }
-
-    const updated = {
-      ...existing,
-      status: status !== undefined ? status : existing.status,
-      adminResponse: adminResponse !== undefined ? adminResponse : existing.adminResponse,
-      updatedAt: new Date().toISOString()
-    };
-
-    const saved = await saveFeedbackRecord(updated);
-    await logAdminAction(req.userUid, 'UPDATE_FEEDBACK', { feedbackId: id, status, title: existing.title });
-
-    return res.status(200).json({ success: true, feedback: saved });
-  } catch (e: any) {
-    console.error('[Admin Feedback Update Error]:', e);
-    return res.status(500).json({ error: e.message || 'Failed to update feedback entry' });
-  }
-});
-
-// Admin: Delete feedback record (SUPERADMIN ONLY)
-app.delete('/api/admin/feedback/:id', verifyAdmin, async (req: any, res) => {
-  try {
-    if (req.adminProfile?.role !== 'superadmin') {
-      return res.status(403).json({ error: 'Access denied. Only Superadmins can delete feedback.' });
-    }
-    const { id } = req.params;
-    await deleteFeedbackRecord(id);
-    await logAdminAction(req.userUid, 'DELETE_FEEDBACK', { feedbackId: id });
-    return res.status(200).json({ success: true, message: 'Feedback entry deleted successfully.' });
-  } catch (e: any) {
-    console.error('[Admin Feedback Delete Error]:', e);
-    return res.status(500).json({ error: e.message || 'Failed to delete feedback entry' });
-  }
-});
-
-// Centralized permission verification function for the authoritative ROM Permission Matrix
+// ROM Permission Checker Function
 function checkRomPermission(adminProfile: any, existingRom: any, incomingData: any): { allowed: boolean; error?: string; mergedData?: any } {
   const role = adminProfile?.role;
   const userId = adminProfile?.id;
@@ -1237,12 +1121,10 @@ function checkRomPermission(adminProfile: any, existingRom: any, incomingData: a
     return { allowed: false, error: 'Access denied. Account is inactive or not approved.' };
   }
 
-  const isSuper = role === 'superadmin';
+  const isSuper = role === 'superadmin' || adminProfile?.isSuperAdmin === true;
   const isAdmin = role === 'admin';
 
   if (isSuper || isAdmin) {
-    // Superadmin and legacy Admin have full control over ROMs.
-    // If Admin role exists, we treat it with same permissions for ROM editing.
     const merged = {
       ...existingRom,
       ...incomingData,
@@ -1253,15 +1135,13 @@ function checkRomPermission(adminProfile: any, existingRom: any, incomingData: a
 
   const isUpdate = !!existingRom;
 
-  if (role === 'maintainer') {
+  if (role === 'maintainer' || role === 'developer') {
     if (!isUpdate) {
-      // Create new ROM:
-      // Can create if the existing system permits creation, but forced to assign ownership to self.
-      if (incomingData.status === 'published') {
-        return { allowed: false, error: 'Unauthorized: Maintainers cannot publish ROMs directly.' };
+      if (incomingData.status === 'published' || incomingData.status === 'Official') {
+        return { allowed: false, error: 'Unauthorized: Maintainers/Developers cannot publish official builds directly.' };
       }
       if (incomingData.isPinned === true) {
-        return { allowed: false, error: 'Unauthorized: Only administrators can pin ROMs.' };
+        return { allowed: false, error: 'Unauthorized: Only administrators can pin ROM entries.' };
       }
       const newRom = {
         ...incomingData,
@@ -1271,69 +1151,29 @@ function checkRomPermission(adminProfile: any, existingRom: any, incomingData: a
       };
       return { allowed: true, mergedData: newRom };
     } else {
-      // Edit existing ROM:
-      if (existingRom.maintainerId !== userId) {
+      if (existingRom.maintainerId && existingRom.maintainerId !== userId) {
         return { allowed: false, error: 'Unauthorized: You can only modify your own ROM submissions.' };
       }
-      // Cannot change ownership
       if (incomingData.maintainerId && incomingData.maintainerId !== userId) {
-        return { allowed: false, error: 'Unauthorized: You cannot change the assigned maintainer.' };
+        return { allowed: false, error: 'Unauthorized: You cannot transfer ROM ownership.' };
       }
-      // Cannot publish directly
       if (incomingData.status === 'published' && existingRom.status !== 'published') {
-        return { allowed: false, error: 'Unauthorized: Maintainers cannot publish ROMs directly.' };
+        return { allowed: false, error: 'Unauthorized: Maintainers/Developers cannot publish ROMs directly.' };
       }
-      // Cannot modify privileged fields
       if (incomingData.isPinned !== undefined && incomingData.isPinned !== existingRom.isPinned) {
         return { allowed: false, error: 'Unauthorized: Only administrators can modify pinning status.' };
       }
       if (incomingData.downloadCount !== undefined && incomingData.downloadCount !== existingRom.downloadCount) {
-        return { allowed: false, error: 'Unauthorized: You cannot modify download counts.' };
+        return { allowed: false, error: 'Unauthorized: You cannot modify download metrics.' };
       }
 
       const merged = {
         ...existingRom,
         ...incomingData,
         id: existingRom.id,
-        maintainerId: userId, // enforce
-        downloadCount: existingRom.downloadCount, // preserve
-        isPinned: existingRom.isPinned // preserve
-      };
-      return { allowed: true, mergedData: merged };
-    }
-  }
-
-  if (role === 'developer') {
-    if (!isUpdate) {
-      return { allowed: false, error: 'Unauthorized: Developers do not have ROM creation privileges.' };
-    } else {
-      // Edit existing ROM:
-      if (existingRom.maintainerId !== userId) {
-        return { allowed: false, error: 'Unauthorized: You can only modify your own ROM submissions.' };
-      }
-      // Cannot change ownership
-      if (incomingData.maintainerId && incomingData.maintainerId !== userId) {
-        return { allowed: false, error: 'Unauthorized: You cannot change the assigned developer.' };
-      }
-      // Cannot publish directly
-      if (incomingData.status === 'published' && existingRom.status !== 'published') {
-        return { allowed: false, error: 'Unauthorized: Developers cannot publish ROMs directly.' };
-      }
-      // Cannot modify privileged fields
-      if (incomingData.isPinned !== undefined && incomingData.isPinned !== existingRom.isPinned) {
-        return { allowed: false, error: 'Unauthorized: Only administrators can modify pinning status.' };
-      }
-      if (incomingData.downloadCount !== undefined && incomingData.downloadCount !== existingRom.downloadCount) {
-        return { allowed: false, error: 'Unauthorized: You cannot modify download counts.' };
-      }
-
-      const merged = {
-        ...existingRom,
-        ...incomingData,
-        id: existingRom.id,
-        maintainerId: userId, // enforce
-        downloadCount: existingRom.downloadCount, // preserve
-        isPinned: existingRom.isPinned // preserve
+        maintainerId: userId,
+        downloadCount: existingRom.downloadCount,
+        isPinned: existingRom.isPinned
       };
       return { allowed: true, mergedData: merged };
     }
@@ -1341,10 +1181,8 @@ function checkRomPermission(adminProfile: any, existingRom: any, incomingData: a
 
   if (role === 'moderator') {
     if (!isUpdate) {
-      return { allowed: false, error: 'Unauthorized: Moderators do not have ROM creation privileges.' };
+      return { allowed: false, error: 'Unauthorized: Moderators cannot create new ROM entries.' };
     } else {
-      // Moderator edits existing ROM:
-      // Define forbidden fields that moderators must NOT modify.
       const forbiddenKeys = [
         'id',
         'maintainerId',
@@ -1360,7 +1198,7 @@ function checkRomPermission(adminProfile: any, existingRom: any, incomingData: a
 
       for (const key of forbiddenKeys) {
         if (incomingData[key] !== undefined && incomingData[key] !== existingRom[key]) {
-          return { allowed: false, error: `Unauthorized: Moderators cannot modify the ${key} field.` };
+          return { allowed: false, error: `Unauthorized: Moderators cannot modify the '${key}' field.` };
         }
       }
 
@@ -1380,33 +1218,45 @@ function checkRomPermission(adminProfile: any, existingRom: any, incomingData: a
     }
   }
 
-  return { allowed: false, error: 'Access denied. Unrecognized or unauthorized role.' };
+  return { allowed: false, error: 'Access denied. Unrecognized or unauthorized administrator role.' };
 }
 
-// ROM Management: Create or Edit/Update existing ROMs
-// Ensures all updates reflect immediately in the Supabase 'roms' table
-app.post('/api/admin/roms', verifyAdmin, async (req: any, res) => {
+// 17. Admin Save ROM Endpoint
+app.post('/api/admin/roms', verifyAdmin, async (req: any, res: Response) => {
   try {
     const romData = req.body;
+    if (!romData || typeof romData !== 'object') {
+      return res.status(400).json({ error: 'Invalid ROM data payload.' });
+    }
+
+    if (!romData.name || typeof romData.name !== 'string' || romData.name.trim().length < 2) {
+      return res.status(400).json({ error: 'ROM name is required (minimum 2 characters).' });
+    }
+
+    if (!romData.androidVersion || typeof romData.androidVersion !== 'string') {
+      return res.status(400).json({ error: 'Android version string is required.' });
+    }
+
+    if (!romData.maintainer || typeof romData.maintainer !== 'string') {
+      return res.status(400).json({ error: 'Maintainer name is required.' });
+    }
+
+    const validStatuses = ['Official', 'Unofficial', 'draft', 'pending', 'approved', 'published', 'rejected'];
+    if (romData.status && !validStatuses.includes(romData.status)) {
+      return res.status(400).json({ error: `Invalid status value '${romData.status}'. Allowed: ${validStatuses.join(', ')}` });
+    }
+
     const incomingId = romData.id;
-    
-    // Look up existing ROM in Supabase by UUID or Name to preserve metadata
     const existing = incomingId ? await getRomRecord(incomingId) : (romData.name ? await getRomRecord(romData.name) : null);
 
-    // Run authoritative server-side permission check using trusted admin profile from DB
     const check = checkRomPermission(req.adminProfile, existing, romData);
     if (!check.allowed) {
-      // Log denied authorization attempts
-      try {
-        await logAdminAction(req.userUid, 'DENIED_ROM_MUTATION', { 
-          romId: incomingId || existing?.id || 'new', 
-          requestedAction: existing ? 'UPDATE' : 'CREATE',
-          reason: check.error,
-          role: req.adminProfile?.role
-        });
-      } catch (logErr) {
-        // Safe fallback if logging has database issues
-      }
+      const ip = (req.headers['x-forwarded-for'] as string) || req.ip;
+      await logAdminAction(req.userUid, 'DENIED_ROM_MUTATION', {
+        romId: incomingId || existing?.id || 'new',
+        reason: check.error,
+        role: req.adminProfile?.role
+      }, ip);
       return res.status(403).json({ error: check.error || 'Access denied.' });
     }
 
@@ -1416,76 +1266,252 @@ app.post('/api/admin/roms', verifyAdmin, async (req: any, res) => {
       updatedAt: new Date().toISOString()
     };
 
-    // Persist changes directly to the Supabase database
-    const targetId = existing?.id || incomingId || '';
+    const targetId = existing?.id || (isValidUUID(incomingId) ? incomingId : crypto.randomUUID());
     const savedRom = await setRomRecord(targetId, payload);
-    
-    // Record audit entry in admin_logs including action, ROM ID, authenticated user ID, role, and timestamp
-    await logAdminAction(req.userUid, existing ? 'UPDATE_ROM' : 'CREATE_ROM', { 
-      romId: savedRom?.id || targetId, 
+
+    const ip = (req.headers['x-forwarded-for'] as string) || req.ip;
+    await logAdminAction(req.userUid, existing ? 'UPDATE_ROM' : 'CREATE_ROM', {
+      romId: savedRom?.id || targetId,
       name: payload.name,
       status: payload.status,
       role: req.adminProfile?.role
-    });
+    }, ip);
 
-    return res.status(200).json({ 
-      success: true, 
+    return res.status(200).json({
+      success: true,
       id: savedRom?.id || targetId,
       rom: savedRom,
-      message: `ROM ${existing ? 'updated' : 'created'} successfully in Supabase database.`
+      message: `ROM ${existing ? 'updated' : 'created'} successfully.`
     });
   } catch (e: any) {
     console.error('[Admin Save ROM Error]:', e);
-    return res.status(500).json({ error: e.message || 'Failed to save ROM to database' });
+    return res.status(500).json({ error: e.message || 'Failed to save ROM record.' });
   }
 });
 
-// Delete ROM endpoint with permission check
-app.delete('/api/admin/roms/:id', verifyAdmin, async (req: any, res) => {
+// 18. Admin Delete ROM Endpoint
+app.delete('/api/admin/roms/:id', verifyAdmin, async (req: any, res: Response) => {
   try {
     const romId = req.params.id;
-    const existing = await getRomRecord(romId);
+    if (!romId) {
+      return res.status(400).json({ error: 'ROM ID parameter is required.' });
+    }
 
+    const existing = await getRomRecord(romId);
     if (!existing) {
-      return res.status(404).json({ error: 'ROM not found in database' });
+      return res.status(404).json({ error: 'ROM not found in database.' });
     }
 
     const role = req.adminProfile?.role;
     const isSuper = req.isSuperAdmin;
     const isAdmin = role === 'admin';
 
-    // Perform strict role-based verification for deletion
     if (!isSuper && !isAdmin) {
       if (role === 'maintainer' || role === 'developer') {
-        if (existing.maintainerId !== req.userUid) {
-          return res.status(403).json({ error: 'You can only delete your own ROMs.' });
+        if (existing.maintainerId && existing.maintainerId !== req.userUid) {
+          return res.status(403).json({ error: 'You can only delete your own ROM entries.' });
         }
         if (existing.status !== 'draft') {
-          return res.status(403).json({ error: 'You can only delete draft ROMs.' });
+          return res.status(403).json({ error: 'You can only delete draft ROM entries.' });
         }
       } else {
-        // Moderator or other roles cannot delete ROMs
-        // Log denied delete attempt
-        try {
-          await logAdminAction(req.userUid, 'DENIED_ROM_DELETION', { 
-            romId, 
-            name: existing.name,
-            role
-          });
-        } catch (logErr) {}
-        return res.status(403).json({ error: 'Unauthorized: You do not have permissions to delete ROMs.' });
+        const ip = (req.headers['x-forwarded-for'] as string) || req.ip;
+        await logAdminAction(req.userUid, 'DENIED_ROM_DELETION', { romId, name: existing.name, role }, ip);
+        return res.status(403).json({ error: 'Unauthorized: You do not have permission to delete ROMs.' });
       }
     }
 
-    // Remove from Supabase database
     await deleteRomRecord(romId);
-    await logAdminAction(req.userUid, 'DELETE_ROM', { romId, name: existing.name, role });
+    const ip = (req.headers['x-forwarded-for'] as string) || req.ip;
+    await logAdminAction(req.userUid, 'DELETE_ROM', { romId, name: existing.name, role }, ip);
 
-    return res.status(200).json({ success: true, message: 'ROM deleted successfully from database.' });
+    return res.status(200).json({ success: true, message: 'ROM deleted successfully.' });
   } catch (e: any) {
     console.error('[Admin Delete ROM Error]:', e);
-    return res.status(500).json({ error: e.message || 'Failed to delete ROM' });
+    return res.status(500).json({ error: e.message || 'Failed to delete ROM.' });
   }
+});
+
+// 19. Public Feedback Submission
+app.post('/api/feedback', feedbackLimiter, async (req: Request, res: Response) => {
+  try {
+    const { type, title, description, category, contact, deviceInfo } = req.body;
+
+    if (!title || typeof title !== 'string' || !title.trim()) {
+      return res.status(400).json({ error: 'Title is required.' });
+    }
+
+    if (!description || typeof description !== 'string' || !description.trim()) {
+      return res.status(400).json({ error: 'Description is required.' });
+    }
+
+    const feedbackEntry = {
+      id: crypto.randomUUID(),
+      type: type || 'general',
+      category: category || 'general',
+      title: title.trim().slice(0, 200),
+      description: description.trim().slice(0, 2000),
+      contact: (typeof contact === 'string' && contact.trim()) ? contact.trim().slice(0, 100) : null,
+      deviceInfo: deviceInfo || null,
+      status: 'pending',
+      adminResponse: null,
+      upvotes: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    const saved = await saveFeedbackRecord(feedbackEntry);
+
+    // Track author initial vote in feedback_votes
+    const voterKey = (req.headers['x-forwarded-for'] as string) || req.ip || 'anonymous';
+    await supabaseAdmin.from('feedback_votes').insert({
+      feedback_id: saved.id,
+      voter_key: voterKey,
+      vote_type: 'upvote',
+      created_at: new Date().toISOString()
+    }).catch(() => {});
+
+    return res.status(200).json({
+      success: true,
+      id: saved.id,
+      feedback: saved,
+      message: 'Thank you! Your feedback has been recorded successfully.'
+    });
+  } catch (e: any) {
+    console.error('[Feedback Submission Error]:', e);
+    return res.status(500).json({ error: e.message || 'Failed to record feedback.' });
+  }
+});
+
+// 20. Public Feedback List
+app.get('/api/feedback', async (req: Request, res: Response) => {
+  try {
+    const all = await getAllFeedbackRecords();
+    const publicList = all.map((f: any) => ({
+      id: f.id,
+      type: f.type,
+      category: f.category,
+      title: f.title,
+      description: f.description,
+      status: f.status,
+      adminResponse: f.adminResponse,
+      upvotes: typeof f.upvotes === 'number' ? f.upvotes : 0,
+      createdAt: f.createdAt,
+      updatedAt: f.updatedAt
+    }));
+
+    return res.status(200).json({ success: true, feedback: publicList });
+  } catch (e: any) {
+    console.error('[Public Feedback Fetch Error]:', e);
+    return res.status(500).json({ error: e.message || 'Failed to load feedback entries.' });
+  }
+});
+
+// 21. Persistent Feedback Vote / Upvote Endpoint
+app.post('/api/feedback/:id/upvote', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { action } = req.body || {}; // 'upvote' | 'downvote' | 'toggle'
+
+    if (!id || !isValidUUID(id)) {
+      return res.status(400).json({ error: 'Valid Feedback ID parameter is required.' });
+    }
+
+    const rawIp = (req.headers['x-forwarded-for'] as string) || req.ip || 'unknown_ip';
+    const voterKey = rawIp.split(',')[0].trim();
+
+    const result = await upvoteFeedbackRecord(id, voterKey, action || 'upvote');
+
+    return res.status(200).json({
+      success: true,
+      id,
+      upvotes: result.upvotes,
+      voted: result.voted,
+      message: result.message
+    });
+  } catch (e: any) {
+    console.error('[Feedback Vote Error]:', e);
+    return res.status(500).json({ error: e.message || 'Failed to process vote.' });
+  }
+});
+
+// 22. Admin Feedback List
+app.get('/api/admin/feedback', verifyAdmin, async (req: Request, res: Response) => {
+  try {
+    const feedbackList = await getAllFeedbackRecords();
+    return res.status(200).json({ success: true, count: feedbackList.length, feedback: feedbackList });
+  } catch (e: any) {
+    return res.status(500).json({ error: e.message || 'Failed to fetch feedback list.' });
+  }
+});
+
+// 23. Admin Update Feedback
+app.patch('/api/admin/feedback/:id', verifyAdmin, async (req: any, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status, adminResponse } = req.body;
+
+    if (!id || !isValidUUID(id)) {
+      return res.status(400).json({ error: 'Valid Feedback ID parameter is required.' });
+    }
+
+    const { data: existing, error: fetchErr } = await supabaseAdmin
+      .from('feedback')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (fetchErr || !existing) {
+      return res.status(404).json({ error: 'Feedback record not found.' });
+    }
+
+    const updated = {
+      ...mapFeedbackToClient(existing),
+      status: status !== undefined ? status : existing.status,
+      adminResponse: adminResponse !== undefined ? adminResponse : existing.admin_response,
+      updatedAt: new Date().toISOString()
+    };
+
+    const saved = await saveFeedbackRecord(updated);
+    const ip = (req.headers['x-forwarded-for'] as string) || req.ip;
+    await logAdminAction(req.userUid, 'UPDATE_FEEDBACK', { feedbackId: id, status, title: existing.title }, ip);
+
+    return res.status(200).json({ success: true, feedback: saved });
+  } catch (e: any) {
+    return res.status(500).json({ error: e.message || 'Failed to update feedback entry.' });
+  }
+});
+
+// 24. Admin Delete Feedback (Superadmin Only)
+app.delete('/api/admin/feedback/:id', verifySuperAdmin, async (req: any, res: Response) => {
+  try {
+    const { id } = req.params;
+    if (!id || !isValidUUID(id)) {
+      return res.status(400).json({ error: 'Valid Feedback ID parameter is required.' });
+    }
+
+    await deleteFeedbackRecord(id);
+    const ip = (req.headers['x-forwarded-for'] as string) || req.ip;
+    await logAdminAction(req.userUid, 'DELETE_FEEDBACK', { feedbackId: id }, ip);
+
+    return res.status(200).json({ success: true, message: 'Feedback entry deleted successfully.' });
+  } catch (e: any) {
+    return res.status(500).json({ error: e.message || 'Failed to delete feedback entry.' });
+  }
+});
+
+// 404 Route Handler for /api routes
+app.use('/api/*', (req: Request, res: Response) => {
+  res.status(404).json({ error: `API route '${req.originalUrl}' not found.` });
+});
+
+// Global Error Handler
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  console.error('[Unhandled Express Error]:', err);
+  if (res.headersSent) {
+    return next(err);
+  }
+  res.status(500).json({ error: err.message || 'Internal Server Error' });
 });
 
 export default app;

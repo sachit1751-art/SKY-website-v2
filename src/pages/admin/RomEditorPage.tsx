@@ -147,13 +147,18 @@ export const RomEditorPage: React.FC = () => {
     if (loading || saving) return;
 
     const autoSaveKey = `rom_draft_${id || 'new'}`;
+    let draftNoticeTimer: ReturnType<typeof setTimeout> | undefined;
+
     const timer = setTimeout(() => {
       localStorage.setItem(autoSaveKey, JSON.stringify(rom));
       setShowDraftSaved(true);
-      setTimeout(() => setShowDraftSaved(false), 2000);
+      draftNoticeTimer = setTimeout(() => setShowDraftSaved(false), 2000);
     }, 1000);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      if (draftNoticeTimer) clearTimeout(draftNoticeTimer);
+    };
   }, [rom, id, loading, saving]);
 
   // Load existing ROM data from Supabase or static AOSP catalog fallback

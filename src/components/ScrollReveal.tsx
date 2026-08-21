@@ -30,6 +30,8 @@ export const ScrollReveal: React.FC<ScrollRevealProps> = ({
       return;
     }
 
+    let transitionTimer: ReturnType<typeof setTimeout> | undefined;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -39,7 +41,7 @@ export const ScrollReveal: React.FC<ScrollRevealProps> = ({
             observer.unobserve(elementRef.current);
           }
           // Clear willChange after animation finishes to free GPU memory
-          setTimeout(() => {
+          transitionTimer = setTimeout(() => {
             setIsTransitionComplete(true);
           }, delayMs + 750);
         }
@@ -56,6 +58,7 @@ export const ScrollReveal: React.FC<ScrollRevealProps> = ({
     }
 
     return () => {
+      if (transitionTimer) clearTimeout(transitionTimer);
       if (currentEl) {
         observer.unobserve(currentEl);
       }

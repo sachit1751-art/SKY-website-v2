@@ -1,12 +1,9 @@
 {
   "outputDirectory": "dist",
   "rewrites": [
+    { "source": "/sitemap.xml", "destination": "/api/index.ts" },
+    { "source": "/feed.xml", "destination": "/api/index.ts" },
     { "source": "/api/(.*)", "destination": "/api/index.ts" },
-    { "source": "/device", "destination": "/index.html" },
-    { "source": "/roms", "destination": "/index.html" },
-    { "source": "/team", "destination": "/index.html" },
-    { "source": "/community", "destination": "/index.html" },
-    { "source": "/about", "destination": "/index.html" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/((?!api/|sitemap\\.xml|feed\\.xml).*)", "destination": "/index.html" }
   ]
 }

@@ -11,6 +11,9 @@ export const RouteProgressBar: React.FC = () => {
     setIsVisible(true);
     setProgress(0);
 
+    let hideTimer: ReturnType<typeof setTimeout> | undefined;
+    let resetTimer: ReturnType<typeof setTimeout> | undefined;
+
     // Let the browser paint first, then trigger progress to 75% smoothly
     const startTimer = setTimeout(() => {
       setProgress(75);
@@ -19,19 +22,19 @@ export const RouteProgressBar: React.FC = () => {
     // After route change settles, jump to 100% and then hide
     const completeTimer = setTimeout(() => {
       setProgress(100);
-      const hideTimer = setTimeout(() => {
+      hideTimer = setTimeout(() => {
         setIsVisible(false);
-        const resetTimer = setTimeout(() => {
+        resetTimer = setTimeout(() => {
           setProgress(0);
         }, 150);
-        return () => clearTimeout(resetTimer);
       }, 200);
-      return () => clearTimeout(hideTimer);
     }, 180);
 
     return () => {
       clearTimeout(startTimer);
       clearTimeout(completeTimer);
+      if (hideTimer) clearTimeout(hideTimer);
+      if (resetTimer) clearTimeout(resetTimer);
     };
   }, [location.pathname, location.search]);
 

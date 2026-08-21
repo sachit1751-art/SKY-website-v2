@@ -40,12 +40,14 @@ export const CommunityFAQSection: React.FC<FAQBlockProps> = ({
 
   // Handle direct hash navigation (e.g., #faq-bootloader-unlock)
   useEffect(() => {
+    let scrollTimer: ReturnType<typeof setTimeout> | undefined;
+
     const handleHash = () => {
       const hash = window.location.hash;
       if (hash && hash.startsWith('#faq-')) {
         const id = hash.replace('#faq-', '');
         setOpenIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
-        setTimeout(() => {
+        scrollTimer = setTimeout(() => {
           const el = document.getElementById(`faq-${id}`);
           if (el) {
             el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -58,7 +60,10 @@ export const CommunityFAQSection: React.FC<FAQBlockProps> = ({
 
     handleHash();
     window.addEventListener('hashchange', handleHash);
-    return () => window.removeEventListener('hashchange', handleHash);
+    return () => {
+      if (scrollTimer) clearTimeout(scrollTimer);
+      window.removeEventListener('hashchange', handleHash);
+    };
   }, [initialOpenId]);
 
   const categories = [
