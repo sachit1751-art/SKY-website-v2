@@ -1,164 +1,212 @@
-# SKY --- Device Community Website
+# 📱 SKY — Official Device & Custom ROM Community Hub
 
-> **SKY --- Built for everyone.**
+<div align="center">
 
-Official community website for **SKY**, an Android smartphone/device
-project.
+> **SKY — Built for everyone.**  
+> *A community-driven Android hub and custom ROM ecosystem built to be different.*
 
-## Overview
+[![React](https://img.shields.io/badge/React-19.0-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![Express](https://img.shields.io/badge/Express-4.21-000000?style=flat-square&logo=express&logoColor=white)](https://expressjs.com/)
+[![Vite](https://img.shields.io/badge/Vite-6.2-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev/)
+[![Motion](https://img.shields.io/badge/Motion-12.23-FF4154?style=flat-square&logo=framer&logoColor=white)](https://motion.dev/)
 
-This project is the web platform for the SKY device community. It
-provides a clean, minimal, PixelOS-inspired experience while keeping the
-focus on useful device and community information.
+[**Explore Live Website**](https://sky-roms.vercel.app/) • [**Report an Issue**](#contributing) • [**Flashing Guide**](#-interactive-flashing-companion) • [**Admin Suite**](#-administrative-portal)
 
-**Live website:** https://sky-roms.vercel.app/
+</div>
 
-## Features
+---
 
--   SKY landing page
--   Device information and specifications
--   Available AOSP/custom ROM directory
--   ROM information and details
--   Admin and developer profiles
--   Community/project information
--   Responsive desktop and mobile experience
--   Dark and light themes
--   Smooth, subtle animations
--   Custom 404 page
--   Vercel deployment
+## 📖 Overview
 
-## Design Direction
+The **SKY Community Web Platform** is a fast, modern, and content-centric portal dedicated to custom ROM enthusiasts, developers, and device maintainers for the **SKY** Android device ecosystem (Redmi 12 5G / POCO M6 Pro 5G / sky). 
 
-The visual direction is inspired by modern Android/open-source project
-websites, particularly the simple, content-focused approach associated
-with PixelOS.
+Inspired by clean, minimalist Android design systems (PixelOS / Material You), the platform offers a seamless experience for browsing verified ROM builds, following step-by-step flashing guides, engaging with community feedback, and managing releases through an administrative portal.
 
-The goal is to keep the interface:
+---
 
--   Minimal
--   Fast
--   Content-focused
--   Responsive
--   Professional
--   Easy to maintain
+## ✨ Key Features
 
-Animations and decorative effects are secondary to the actual project
-information.
+### 📱 ROM Catalog & Device Showcase
+- **Curated ROM Directory**: Browse official and community builds (AOSP, PixelOS, LineageOS, Evolution X, RisingOS, crDroid, and more) with real-time Android version tags, build dates, maintainers, and security patch levels.
+- **Fuzzy Search & Fast Filtering**: Instant search powered by `Fuse.js` with multi-criteria filters (Android 14/15, Official/Unofficial, GApps/Vanilla status).
+- **Virtual Scrolling**: Optimized rendering for extensive lists via `@tanstack/react-virtual`.
+- **Comprehensive ROM Overviews**: Detailed modals featuring changelogs, installation prerequisites, screenshots, MD5 checksum verification, and fast mirror links.
 
-## ROM Directory
+### ⚡ Interactive Flashing Companion
+- **Step-by-Step Interactive Checklist**: Real-time progress tracker with checkbox completion states that persist across browser sessions via `localStorage`.
+- **Multi-Method Guides**: Dedicated tabs for **Clean Flash**, **Dirty Flash (OTA)**, **Firmware Flashing**, and **Interactive Checklist**.
+- **Progress Gauge & Reset**: Live visual completion bar and one-click reset button for safe recovery during flash sessions.
 
-The website can present available ROMs for SKY with information such as:
+### 💬 Community & Feedback Hub
+- **Feedback & Bug Tracker**: Submit bug reports, feature requests, and general inquiries with device/ROM tag associations.
+- **Community Upvoting**: Users can upvote community suggestions and trending issues.
+- **Pinned Announcements & Highlights**: Admin-pinned posts with distinct badges prioritized at the top of the feed.
 
--   ROM name
--   Android version
--   Official / Unofficial status
--   Maintainer
--   Latest build
--   Download/source information
+### 🛡️ Administrative Portal
+- **Role-Based Access Control**: Secure token authentication with admin and super-admin privilege tiers.
+- **ROM Management (CRUD)**: Create, update, toggle active status, and archive ROM listings with changelog formatting.
+- **Feedback Moderation Suite**: Review feedback, update statuses (*Pending*, *In Progress*, *Resolved*, *Dismissed*), compose official responses, toggle pinned status, or delete spam.
+- **Security & Audit Logs**: Detailed timeline of administrator actions, logins, and permission changes.
+- **One-Click System Backup & Export**: Instant administrative export of full system data (ROMs, maintainers, feedbacks, audit logs) as formatted JSON via `/api/admin/backup`.
 
-Only verified project information should be presented as real device or
-ROM data.
+### 🎨 Design & Experience
+- **Adaptive Light & Dark Modes**: Carefully calibrated warm-neutral and deep obsidian themes passing WCAG AA contrast standards.
+- **Fluid Layout & Micro-Interactions**: Smooth spring animations, layout transitions, and icon interactions powered by `motion`.
+- **Multilingual Support (i18n)**: Internationalization configured with `i18next` for global community members.
+- **Unified Toast Feedback**: Consistent notifications across both user actions and administrative operations.
 
-## Team
+---
 
-The website includes profiles for SKY administrators and developers,
-recognizing the people responsible for maintaining and developing the
-project.
+## 🛠️ Technology Stack
 
-## Development
+| Layer | Technologies |
+| :--- | :--- |
+| **Frontend Framework** | React 19, TypeScript 5.8, React Router v7 |
+| **Styling & Theme** | Tailwind CSS v4, Lucide React Icons |
+| **Animations** | Motion (Framer Motion v12) |
+| **State & Search** | React Hooks, Context API, Fuse.js, TanStack Virtual |
+| **Internationalization** | i18next, react-i18next |
+| **Backend & API** | Node.js, Express 4.21, TypeScript (via `tsx`) |
+| **Build & Bundler** | Vite 6.2, esbuild |
+| **Data & Storage** | In-memory store with Supabase integration support & JSON backup exporter |
 
-Clone the repository:
+---
 
-``` bash
-git clone <YOUR_GITHUB_REPOSITORY_URL>
-cd <PROJECT_DIRECTORY>
-```
+## 📁 Project Structure
 
-Install dependencies:
-
-``` bash
-npm install
-```
-
-Start the development server:
-
-``` bash
-npm run dev
-```
-
-Create a production build:
-
-``` bash
-npm run build
-```
-
-Preview the production build:
-
-``` bash
-npm run preview
-```
-
-Follow the scripts defined in `package.json` if the project uses
-different commands.
-
-## Deployment
-
-The production website is deployed using Vercel.
-
-``` text
-Local development
-       ↓
-GitHub
-       ↓
-Vercel
-       ↓
-Production website
-```
-
-The connected production branch can automatically trigger a new Vercel
-deployment when changes are pushed.
-
-## Project Structure
-
-A typical structure includes:
-
-``` text
+```text
 .
-├── public/
-│   └── admins/
+├── api/                    # Express API router & backend controllers
+│   └── index.ts            # REST endpoints (ROMs, auth, feedback, backup)
+├── public/                 # Static assets, logos, and maintainer avatars
+│   ├── admins/             # Maintainer profiles
+│   └── roms/               # ROM banner graphics and screenshots
 ├── src/
-├── package.json
-├── README.md
-└── ...
+│   ├── components/         # Reusable UI components
+│   │   ├── admin/          # Admin portal components (FeedbackManager, RomEditor, etc.)
+│   │   ├── icons/          # Animated vector icon wrappers
+│   │   ├── FeedbackModal.tsx # Public community feedback dialog
+│   │   ├── FlashingGuide.tsx # Flashing guide with interactive checklist
+│   │   ├── Navbar.tsx      # Global navigation header
+│   │   ├── RomCard.tsx     # Grid & list item ROM cards
+│   │   ├── RomDetailsModal.tsx # Full ROM details, mirrors & guide modal
+│   │   └── Toast.tsx       # Global toast notification container
+│   ├── context/            # ToastContext, AuthContext, ThemeContext
+│   ├── pages/              # Primary route views (Home, Catalog, Community, Admin)
+│   ├── types/              # Global TypeScript interfaces & schemas
+│   ├── App.tsx             # Root routing and provider hierarchy
+│   ├── index.css           # Tailwind CSS v4 entrypoint
+│   └── main.tsx            # React application entrypoint
+├── metadata.json           # Application metadata & permissions
+├── package.json            # Scripts & project dependencies
+├── server.ts               # Express server entry point & Vite middleware
+├── tsconfig.json           # TypeScript configuration
+└── vite.config.ts          # Vite build & plugin configuration
 ```
 
-The exact structure may evolve with the project.
+---
 
-## Contributing
+## 🚀 Getting Started
 
-Before submitting changes:
+### Prerequisites
 
-1.  Keep existing functionality working.
-2.  Test desktop and mobile layouts.
-3.  Test both dark and light themes.
-4.  Check image and static-asset paths.
-5.  Run a production build.
-6.  Verify the deployed result when applicable.
+- **Node.js**: `v20.x` or higher
+- **npm**: `v10.x` or higher (or `pnpm` / `yarn`)
 
-## Credits
+### Installation
 
-**SKY Project**
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/your-username/sky-roms.git
+   cd sky-roms
+   ```
 
-Website design and development by the SKY project contributors.
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-Built for an open-source Android device community.
+3. **Configure Environment Variables (Optional):**
+   Copy the example environment file if you plan to connect external services:
+   ```bash
+   cp .env.example .env
+   ```
 
-## License
+4. **Start the development server:**
+   ```bash
+   npm run dev
+   ```
+   Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-Add the project's intended license before publishing a license claim. If
-no license has been selected yet, do not claim a specific open-source
-license.
+---
 
-------------------------------------------------------------------------
+## 📜 Available Scripts
 
-**SKY --- Built for everyone.**
+| Command | Description |
+| :--- | :--- |
+| `npm run dev` | Starts the Express server with Vite middleware on port 3000 with hot-reload. |
+| `npm run build` | Builds the client application for production and bundles `server.ts` into `dist/server.cjs`. |
+| `npm run start` | Runs the compiled production server (`node dist/server.cjs`). |
+| `npm run lint` | Runs the TypeScript compiler check (`tsc --noEmit`) to validate type safety. |
+| `npm run clean` | Cleans up the `dist/` build output and temporary bundle artifacts. |
+
+---
+
+## 🔌 API Endpoints Reference
+
+### Public Endpoints
+- `GET /api/roms` — List all available custom ROMs with maintainer details and mirror links.
+- `GET /api/roms/:id` — Retrieve comprehensive details for a specific ROM.
+- `GET /api/feedback/public` — List public community feedback (pinned items prioritized).
+- `POST /api/feedback` — Submit a new community feedback or bug report.
+- `POST /api/feedback/:id/upvote` — Upvote a feedback submission.
+
+### Admin Endpoints (Protected)
+- `POST /api/admin/login` — Authenticate admin credentials and receive session token.
+- `POST /api/admin/roms` — Create a new ROM entry.
+- `PUT /api/admin/roms/:id` — Update existing ROM configuration and build links.
+- `DELETE /api/admin/roms/:id` — Remove or archive a ROM entry.
+- `PATCH /api/admin/feedback/:id` — Update feedback status, add admin response, or toggle pinned state.
+- `DELETE /api/admin/feedback/:id` — Permanently remove a feedback submission.
+- `GET /api/admin/backup` — Download full formatted JSON snapshot of all system collections.
+
+---
+
+## 🤝 Contributing
+
+Contributions to the SKY web platform are always welcome!
+
+1. **Fork the Repository**
+2. **Create a Feature Branch**:
+   ```bash
+   git checkout -b feature/amazing-feature
+   ```
+3. **Commit your changes**:
+   ```bash
+   git commit -m "feat: add amazing feature"
+   ```
+4. **Push to the branch**:
+   ```bash
+   git push origin feature/amazing-feature
+   ```
+5. **Open a Pull Request**
+
+Please ensure all tests and type checks pass with `npm run lint` and `npm run build` before opening a pull request.
+
+---
+
+## 👥 Community & Credits
+
+- **SKY Project Core Team**: Maintainers, designers, and open-source contributors.
+- **Custom ROM Maintainers**: Thank you to all developers building AOSP, PixelOS, LineageOS, Evolution X, and other distributions for the community.
+
+---
+
+<div align="center">
+
+**SKY — Built for everyone.**
+
+</div>
+
