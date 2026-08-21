@@ -498,7 +498,7 @@ async function seedInitialSuperadmin() {
     return;
   }
   try {
-    const { data: existingAdmin, error } = await supabaseAdmin
+    const { data: existingAdmin } = await supabaseAdmin
       .from('admins')
       .select('*')
       .eq('id', INITIAL_SUPERADMIN_UID)
@@ -517,10 +517,48 @@ async function seedInitialSuperadmin() {
         is_super_admin: true,
       };
 
-      const { error: insertError } = await supabaseAdmin.from('admins').insert(payload);
-      if (insertError) {
-        console.warn('[Superadmin Seed Notice]:', insertError.message);
+      await supabaseAdmin.from('admins').insert(payload);
+    }
+
+    // Ensure sachit1771@gmail.com is also seeded as superadmin with password meena@1751
+    const targetEmail = 'sachit1771@gmail.com';
+    const targetPassword = 'meena@1751';
+    let targetUid = '';
+
+    const { data: listData } = await supabaseAdmin.auth.admin.listUsers();
+    const existingUser = listData?.users?.find((u: any) => u.email?.toLowerCase() === targetEmail.toLowerCase());
+
+    if (existingUser) {
+      targetUid = existingUser.id;
+      await supabaseAdmin.auth.admin.updateUserById(targetUid, {
+        password: targetPassword,
+        email_confirm: true
+      });
+    } else {
+      const { data: createData, error: createError } = await supabaseAdmin.auth.admin.createUser({
+        email: targetEmail,
+        password: targetPassword,
+        email_confirm: true,
+        user_metadata: { name: 'Sachit' }
+      });
+      if (!createError && createData?.user) {
+        targetUid = createData.user.id;
       }
+    }
+
+    if (targetUid) {
+      await supabaseAdmin.from('admins').upsert({
+        id: targetUid,
+        email: targetEmail,
+        name: 'Sachit',
+        display_name: 'Sachit',
+        username: 'sachit1771',
+        role: 'superadmin',
+        active: true,
+        approval_status: 'approved',
+        is_super_admin: true,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'id' });
     }
   } catch (err: any) {
     console.warn('[Superadmin Seed Error]:', err.message);

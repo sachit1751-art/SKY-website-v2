@@ -34,16 +34,7 @@ export default defineConfig(() => {
         output: {
           manualChunks(id) {
             if (id.includes('node_modules')) {
-              if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
-                return 'vendor-react';
-              }
-              if (id.includes('motion')) {
-                return 'vendor-motion';
-              }
-              if (id.includes('supabase')) {
-                return 'vendor-supabase';
-              }
-              return 'vendor-misc';
+              return 'vendor';
             }
             if (id.includes('/src/pages/admin/')) {
               if (id.includes('LoginPage') || id.includes('RegisterPage') || id.includes('ResetPasswordPage')) {
