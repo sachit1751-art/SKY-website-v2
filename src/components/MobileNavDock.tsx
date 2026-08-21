@@ -113,57 +113,53 @@ export const MobileNavDock: React.FC<MobileNavDockProps> = ({
   return (
     <AnimatePresence>
       {isVisible && (
-        <motion.div
+        <motion.nav
+          aria-label="Mobile Bottom Navigation"
           initial={{ y: 80, opacity: 0, scale: 0.95 }}
           animate={{ y: 0, opacity: 1, scale: 1 }}
           exit={{ y: 80, opacity: 0, scale: 0.95 }}
           transition={{ type: 'spring', stiffness: 400, damping: 28 }}
-          className="md:hidden fixed bottom-3 sm:bottom-4 inset-x-3 sm:inset-x-4 z-40 max-w-sm mx-auto pointer-events-auto"
+          className={`${dockBgClass} md:hidden w-[calc(100%-24px)] max-w-sm mx-auto mb-3 sm:mb-4 border border-[#EBE4CF] dark:border-[#36342A] rounded-full p-1 sm:p-1.5 flex items-center justify-between gap-1 pointer-events-auto shadow-2xl`}
+          style={{ position: 'fixed', zIndex: 9999, bottom: 0, left: 0, right: 0 }}
         >
-          <nav
-            aria-label="Mobile Bottom Navigation"
-            className={`${dockBgClass} border border-[#EBE4CF] dark:border-[#36342A] rounded-full p-1 sm:p-1.5 flex items-center justify-between gap-1 transform-gpu min-h-[56px]`}
-          >
-            {items.map((item) => {
-              const isActive =
-                location.pathname === item.path ||
-                (item.path !== '/' && location.pathname.startsWith(item.path));
-              const IconComponent = item.icon;
-
-              return (
-                <MotionLink
-                  key={item.path}
-                  to={item.path}
-                  className={`relative flex-1 min-h-[44px] min-w-[44px] px-1 py-1 rounded-full flex flex-col items-center justify-center text-[10px] font-bold transition-all cursor-pointer ${
-                    isActive
-                      ? 'text-[#121212] font-extrabold'
-                      : 'text-[#787567] dark:text-[#BDB8A4] hover:text-[#121212] dark:hover:text-[#F4EFE6]'
-                  }`}
-                  whileTap={{ scale: 0.92 }}
-                  onClick={() => {
-                    if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                      navigator.vibrate(5);
-                    }
-                  }}
-                  aria-current={isActive ? 'page' : undefined}
-                >
-                  {isActive && (
-                    <motion.div
-                      layoutId={isVeryLowEnd ? undefined : "activeMobileDockItem"}
-                      className="absolute inset-0 bg-[#FDE694] rounded-full shadow-xs border border-[#EBE4CF] dark:border-transparent -z-10"
-                      transition={isVeryLowEnd ? { duration: 0 } : { type: 'spring', stiffness: 400, damping: 28 }}
-                    />
-                  )}
-                  <IconComponent size={isSmallScreen ? 16 : 18} />
-                  {item.name === 'Admin' && isSessionExpiring && (
-                    <AlertCircle size={10} className="absolute top-1.5 right-2 text-red-500 animate-pulse" />
-                  )}
-                  <span className="mt-0.5 leading-none tracking-tight whitespace-nowrap text-[9px] sm:text-[10px]">{item.name}</span>
-                </MotionLink>
-              );
-            })}
-          </nav>
-        </motion.div>
+          {items.map((item) => {
+            const isActive =
+              location.pathname === item.path ||
+              (item.path !== '/' && location.pathname.startsWith(item.path));
+            const IconComponent = item.icon;
+            return (
+              <MotionLink
+                key={item.path}
+                to={item.path}
+                className={`relative flex-1 min-h-[44px] min-w-[44px] px-1 py-1 rounded-full flex flex-col items-center justify-center text-[10px] font-bold transition-all cursor-pointer ${
+                  isActive
+                    ? 'text-[#121212] font-extrabold'
+                    : 'text-[#787567] dark:text-[#BDB8A4] hover:text-[#121212] dark:hover:text-[#F4EFE6]'
+                }`}
+                whileTap={{ scale: 0.92 }}
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                    navigator.vibrate(5);
+                  }
+                }}
+                aria-current={isActive ? 'page' : undefined}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId={isVeryLowEnd ? undefined : "activeMobileDockItem"}
+                    className="absolute inset-0 bg-[#FDE694] rounded-full shadow-xs border border-[#EBE4CF] dark:border-transparent -z-10"
+                    transition={isVeryLowEnd ? { duration: 0 } : { type: 'spring', stiffness: 400, damping: 28 }}
+                  />
+                )}
+                <IconComponent size={isSmallScreen ? 16 : 18} />
+                {item.name === 'Admin' && isSessionExpiring && (
+                  <AlertCircle size={10} className="absolute top-1.5 right-2 text-red-500 animate-pulse" />
+                )}
+                <span className="mt-0.5 leading-none tracking-tight whitespace-nowrap text-[9px] sm:text-[10px]">{item.name}</span>
+              </MotionLink>
+            );
+          })}
+        </motion.nav>
       )}
     </AnimatePresence>
   );

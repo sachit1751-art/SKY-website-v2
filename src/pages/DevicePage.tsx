@@ -108,12 +108,12 @@ export const DevicePage: React.FC = () => {
       </motion.div>
 
       {/* Animated Spec Counters (5000 mAh, 90Hz, 4nm, 50MP) */}
-      <motion.div variants={staggerItemVariants}>
+      <motion.div variants={staggerItemVariants} style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 300px' }}>
         <SpecCountersSection />
       </motion.div>
 
       {/* Interactive Specifications Explorer */}
-      <motion.div variants={staggerItemVariants} className="pt-2 sm:pt-4 w-full">
+      <motion.div variants={staggerItemVariants} className="pt-2 sm:pt-4 w-full" style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 800px' }}>
         <div className="text-center max-w-2xl mx-auto mb-8 sm:mb-10">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#49473E] dark:text-[#F4EFE6] mb-3">Technical Specifications</h2>
           <p className="text-xs sm:text-sm text-[#787567] dark:text-[#BDB8A4]">
@@ -201,7 +201,7 @@ export const DevicePage: React.FC = () => {
       </motion.div>
 
       {/* Device Development & Device Tree Section */}
-      <motion.div variants={staggerItemVariants} className="bg-[#FAF3DD] dark:bg-[#1F1E18] p-6 sm:p-12 rounded-3xl border border-[#EBE4CF] dark:border-[#36342A] flex flex-col md:flex-row items-center justify-between gap-8 shadow-xs">
+      <motion.div variants={staggerItemVariants} className="bg-[#FAF3DD] dark:bg-[#1F1E18] p-6 sm:p-12 rounded-3xl border border-[#EBE4CF] dark:border-[#36342A] flex flex-col md:flex-row items-center justify-between gap-8 shadow-xs" style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 300px' }}>
         <div className="space-y-3 max-w-2xl">
           <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-[#49473E] dark:text-[#121212] bg-[#FDE694] px-3.5 py-1 rounded-full inline-block border border-[#EBE4CF] dark:border-transparent">
             Open Source Device Tree

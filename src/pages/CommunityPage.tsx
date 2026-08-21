@@ -199,7 +199,7 @@ export const CommunityPage: React.FC = () => {
       </motion.div>
 
       {/* Section 1: Community Channels */}
-      <motion.div variants={staggerItemVariants} className="space-y-6">
+      <motion.div variants={staggerItemVariants} className="space-y-6" style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 400px' }}>
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-[#49473E] dark:text-[#F4EFE6] tracking-tight">
@@ -255,7 +255,7 @@ export const CommunityPage: React.FC = () => {
       </motion.div>
 
       {/* Section 2: Core Principles */}
-      <motion.div variants={staggerItemVariants} className="space-y-6">
+      <motion.div variants={staggerItemVariants} className="space-y-6" style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 600px' }}>
         <div>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-[#49473E] dark:text-[#F4EFE6] tracking-tight">
             Core Principles
@@ -288,7 +288,7 @@ export const CommunityPage: React.FC = () => {
       </motion.div>
 
       {/* Section 4: Collapsible Knowledge Base & FAQ */}
-      <motion.div variants={staggerItemVariants}>
+      <motion.div variants={staggerItemVariants} style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 800px' }}>
         <ScrollReveal distance={16}>
           <CommunityFAQSection />
         </ScrollReveal>

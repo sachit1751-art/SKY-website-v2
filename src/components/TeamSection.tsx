@@ -256,6 +256,7 @@ export const TeamSection: React.FC = () => {
           {filteredMembers.map((member) => (
             <div
               key={member.id || member.handle || member.name}
+              style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 250px' }}
               className="bg-gradient-to-b from-[#FFFDF7] to-[#FAF5E6] dark:from-[#181712] dark:to-[#12110D] rounded-3xl p-5 sm:p-6 border border-[#EBE4CF] dark:border-[#2C2A22] hover:border-[#FDE694]/60 dark:hover:border-[#FDE694]/40 shadow-xs hover:shadow-xl hover:-translate-y-1 hover:scale-[1.01] transition-all duration-300 ease-out flex flex-col justify-between"
             >
               <div>

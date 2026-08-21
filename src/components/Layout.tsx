@@ -11,7 +11,6 @@ import { ScrollProgressBar } from './ScrollProgressBar';
 import { BreadcrumbNav } from './BreadcrumbNav';
 import { PullToRefresh } from './PullToRefresh';
 import { FeedbackModal } from './FeedbackModal';
-import { PWAInstallBanner } from './PWAInstallBanner';
 
 export const Layout: React.FC = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -33,7 +32,6 @@ export const Layout: React.FC = () => {
       <RouteProgressBar />
       <ScrollToTop />
       <FeedbackModal />
-      <PWAInstallBanner />
       {!isOnline && <OfflineToast />}
 
       {/* Global Ambient Silk Background & Lighting */}

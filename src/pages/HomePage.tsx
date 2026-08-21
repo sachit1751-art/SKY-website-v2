@@ -84,12 +84,12 @@ export const HomePage: React.FC = () => {
 
 
       {/* Screenshot Carousel */}
-      <section className="px-6 md:px-12 max-w-7xl mx-auto py-12">
+      <section className="px-6 md:px-12 max-w-7xl mx-auto py-12" style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 600px' }}>
         <ScreenshotCarousel />
       </section>
 
       {/* SKY App Download & Features Section */}
-      <section className="px-4 sm:px-6 md:px-12 max-w-7xl mx-auto py-8">
+      <section className="px-4 sm:px-6 md:px-12 max-w-7xl mx-auto py-8" style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 600px' }}>
         <ScrollReveal distance={16}>
           <div className="bg-gradient-to-br from-[#FAF3DD]/95 to-[#F4ECDC]/95 dark:from-[#1A1914]/95 dark:to-[#151410]/95 border border-[#EBE4CF] dark:border-[#2C2A22] rounded-3xl p-6 sm:p-10 text-[#121212] dark:text-[#FAF3DD] shadow-xl relative overflow-hidden">
             {/* Glowing ambient orb */}
@@ -170,7 +170,7 @@ export const HomePage: React.FC = () => {
       )}
 
       {/* Concise Product Gateway Section */}
-      <section className="px-4 sm:px-6 md:px-12 max-w-7xl mx-auto space-y-8">
+      <section className="px-4 sm:px-6 md:px-12 max-w-7xl mx-auto space-y-8" style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 800px' }}>
         {/* Section Heading with ScrollReveal */}
         <ScrollReveal distance={16}>
           <div className="text-center max-w-2xl mx-auto">

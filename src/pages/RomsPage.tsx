@@ -925,6 +925,7 @@ export const RomsPage: React.FC = () => {
       {/* ROM List */}
       <motion.div 
         className="space-y-4"
+        style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 1000px' }}
       >
         {sortedAndFilteredRoms.length === 0 ? (
           <div className="text-center py-16 px-6 bg-[#FAF3DD]/40 dark:bg-[#1F1E18]/40 rounded-3xl border border-[#EBE4CF] dark:border-[#36342A] space-y-3">
@@ -959,6 +960,7 @@ export const RomsPage: React.FC = () => {
               <motion.div
                 key={rom.id || rom.name}
                 variants={staggerItemVariants}
+                style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 350px' }}
               >
                 <SpotlightCard className="rounded-3xl">
                   <div 
