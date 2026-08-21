@@ -1,0 +1,276 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+  
+  --color-bg: var(--color-bg);
+  --color-surface-subtle: var(--color-surface-subtle);
+  --color-surface-card: var(--color-surface-card);
+  --color-surface-hover: var(--color-surface-hover);
+  --color-border: var(--color-border);
+  
+  --color-text-main: var(--color-text-main);
+  --color-text-muted: var(--color-text-muted);
+  --color-text-faint: var(--color-text-faint);
+  
+  --color-accent: var(--color-accent);
+  --color-accent-soft: var(--color-accent-soft);
+}
+
+:root {
+  --color-bg: #FFF8E1;
+  --color-surface-subtle: #F7F0D8;
+  --color-surface-card: #FAF3DD;
+  --color-surface-hover: #EBE4CF;
+  --color-border: #EBE4CF;
+  
+  --color-text-main: #49473E;
+  --color-text-muted: #787567;
+  --color-text-faint: #989484;
+  
+  --color-accent: #FDE694;
+  --color-accent-soft: rgba(253, 230, 148, 0.3);
+}
+
+.dark {
+  --color-bg: #141416;
+  --color-surface-subtle: #1a1a1e;
+  --color-surface-card: #202024;
+  --color-surface-hover: #2b2b30;
+  --color-border: #303035;
+  
+  --color-text-main: #f3f3f6;
+  --color-text-muted: #9ca0ab;
+  --color-text-faint: #6c6f7b;
+  
+  --color-accent: #ffffff;
+  --color-accent-soft: rgba(255, 255, 255, 0.12);
+}
+
+@layer base {
+  html, body {
+    background-color: var(--color-bg);
+    color: var(--color-text-main);
+    font-family: var(--font-sans);
+    letter-spacing: -0.011em;
+    transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+    margin: 0;
+    padding: 0;
+  }
+
+  #root {
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+    min-height: 100vh;
+    min-height: 100dvh; /* Dynamic viewport height for mobile */
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+/* Smooth Cross-Fade Animation for View Transitions */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.35s;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  animation-name: theme-crossfade-out;
+}
+
+::view-transition-new(root) {
+  animation-name: theme-crossfade-in;
+}
+
+@keyframes theme-crossfade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes theme-crossfade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Fallback & universal smooth transition for all elements during theme toggle */
+.theme-transitioning,
+.theme-transitioning *,
+.theme-transitioning *::before,
+.theme-transitioning *::after {
+  transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease, fill 0.4s ease, stroke 0.4s ease, box-shadow 0.4s ease !important;
+  transition-delay: 0s !important;
+}
+
+/* Custom Minimal Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-surface-hover);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent);
+}
+
+/* Shimmer & subtle pulse animation for skeletal loaders */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes shimmer-pulse {
+  0% {
+    background-position: -200% 0;
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    background-position: 200% 0;
+    opacity: 0.72;
+    transform: scale(0.995);
+  }
+  100% {
+    background-position: -200% 0;
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes subtle-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.65;
+    transform: scale(0.992);
+  }
+}
+
+.animate-pulse {
+  animation: subtle-pulse 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.shimmer-skeleton {
+  background: linear-gradient(
+    90deg,
+    #EBE4CF 0%,
+    #FAF3DD 50%,
+    #EBE4CF 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer-pulse 2.2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+.dark .shimmer-skeleton {
+  background: linear-gradient(
+    90deg,
+    #1F1E18 0%,
+    #36342A 50%,
+    #1F1E18 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer-pulse 2.2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+.shimmer-btn {
+  background: linear-gradient(
+    90deg,
+    #FDE694 0%,
+    #FFF2C2 40%,
+    #FFFDF2 50%,
+    #FFF2C2 60%,
+    #FDE694 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 4s infinite linear;
+}
+
+.shimmer-text {
+  background: linear-gradient(
+    90deg,
+    #49473E 0%,
+    #787567 35%,
+    #49473E 70%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 6s infinite linear;
+}
+
+.dark .shimmer-text {
+  background: linear-gradient(
+    90deg,
+    #f3f3f6 0%,
+    #9ca0ab 35%,
+    #f3f3f6 70%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Ambient title accent gradient shimmer */
+.shimmer-accent {
+  background: linear-gradient(
+    90deg,
+    #D97706 0%,
+    #EA580C 25%,
+    #FBBF24 50%,
+    #EA580C 75%,
+    #D97706 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 5s infinite linear;
+}
+
+.dark .shimmer-accent {
+  background: linear-gradient(
+    90deg,
+    #FDE694 0%,
+    #F97316 25%,
+    #FFF3B0 50%,
+    #F97316 75%,
+    #FDE694 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 5s infinite linear;
+}
+
+/* Coverflow carousel 3D transform support */
+.perspective-1000 {
+  perspective: 1000px;
+}
+.transform-style-3d {
+  transform-style: preserve-3d;
+}

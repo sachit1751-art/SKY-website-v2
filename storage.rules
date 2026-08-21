@@ -1,0 +1,36 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isValidImage() {
+      return request.resource.size < 5 * 1024 * 1024 // 5MB
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // Admin avatar uploads (authenticated user uploads own avatar prefixed by their uid)
+    match /admins/avatars/{fileName} {
+      allow read: if true;
+      allow write: if isSignedIn() && fileName.startsWith(request.auth.uid) && isValidImage();
+    }
+
+    // ROM logo uploads (maintainer uploads to their uid folder)
+    match /roms/logos/{uid}/{fileName} {
+      allow read: if true;
+      allow write: if isOwner(uid) && isValidImage();
+    }
+
+    // ROM screenshot uploads (maintainer uploads to their uid folder)
+    match /roms/screenshots/{uid}/{fileName} {
+      allow read: if true;
+      allow write: if isOwner(uid) && isValidImage();
+    }
+  }
+}
