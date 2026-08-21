@@ -946,6 +946,26 @@ app.post('/api/admin/log', verifyAdmin, async (req: any, res: Response) => {
   }
 });
 
+// 5b. Admin Diagnostics Endpoint
+app.get('/api/admin/diagnostics', verifyAdmin, async (req: any, res: Response) => {
+  try {
+    return res.status(200).json({
+      success: true,
+      diagnostics: {
+        isFeedbackInMemoryFallback: (inMemoryFeedback.length > 0 || process.env.SUPABASE_SERVICE_ROLE_KEY === process.env.SUPABASE_URL),
+        inMemoryFeedbackCount: inMemoryFeedback.length,
+        supabaseConfigured: !!(process.env.SUPABASE_URL && process.env.VITE_SUPABASE_ANON_KEY),
+        isServiceRoleKeyFallback: (process.env.SUPABASE_SERVICE_ROLE_KEY === process.env.SUPABASE_URL),
+        uptime: process.uptime(),
+        nodeVersion: process.version,
+        timestamp: new Date().toISOString()
+      }
+    });
+  } catch (e: any) {
+    return res.status(500).json({ error: e.message || 'Failed to fetch diagnostics.' });
+  }
+});
+
 // 6. Admin Registration (Atomic Rollback)
 app.post('/api/admin/register', registrationLimiter, async (req: Request, res: Response) => {
   const { email, password, name, username, telegramUsername } = req.body;

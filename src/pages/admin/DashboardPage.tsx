@@ -34,7 +34,27 @@ export const DashboardPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'my_projects' | 'feedback'>('all');
   const [pendingFeedbackCount, setPendingFeedbackCount] = useState<number>(0);
+  const [diagnostics, setDiagnostics] = useState<any>(null);
   const { showToast } = useToast();
+
+  // Fetches live system diagnostics
+  const fetchDiagnostics = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      const res = await fetch('/api/admin/diagnostics', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setDiagnostics(data.diagnostics);
+        }
+      }
+    } catch (e) {
+      console.warn('Diagnostics fetch error:', e);
+    }
+  };
 
   // Fetches pending feedback count for badge
   const fetchFeedbackCount = async () => {
@@ -124,7 +144,11 @@ export const DashboardPage: React.FC = () => {
   useEffect(() => {
     fetchRoms();
     fetchFeedbackCount();
-    const interval = setInterval(fetchFeedbackCount, 15000);
+    fetchDiagnostics();
+    const interval = setInterval(() => {
+      fetchFeedbackCount();
+      fetchDiagnostics();
+    }, 15000);
     return () => clearInterval(interval);
   }, []);
 
@@ -418,7 +442,7 @@ export const DashboardPage: React.FC = () => {
                   <h3 className="text-xs font-black text-[#787567] dark:text-[#BDB8A4] tracking-widest uppercase flex items-center gap-2">
                     <Shield size={14} /> SYSTEM STATUS
                   </h3>
-                  <button onClick={fetchRoms} className="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded transition-colors cursor-pointer" title="Refresh list">
+                  <button onClick={() => { fetchRoms(); fetchDiagnostics(); }} className="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded transition-colors cursor-pointer" title="Refresh list & status">
                     <RefreshCw size={12} className={`text-[#787567] dark:text-[#BDB8A4] ${loading ? 'animate-spin' : ''}`} />
                   </button>
                 </div>
@@ -446,6 +470,32 @@ export const DashboardPage: React.FC = () => {
                     <span className="text-sm text-[#787567] dark:text-[#BDB8A4]">Account Status</span>
                     <span className="text-sm font-bold text-green-500">Active</span>
                   </div>
+
+                  {diagnostics && (
+                    <div className="border-t border-[#EBE4CF] dark:border-[#36342A] pt-4 mt-4 space-y-3">
+                      <div className="text-[10px] font-black text-[#787567] dark:text-[#BDB8A4] tracking-widest uppercase mb-1">
+                        DATABASE PIPELINE
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-[#787567] dark:text-[#BDB8A4]">Active Store</span>
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${diagnostics.isFeedbackInMemoryFallback ? 'text-amber-500 bg-amber-500/10' : 'text-green-500 bg-green-500/10'}`}>
+                          {diagnostics.isFeedbackInMemoryFallback ? 'In-Memory Fallback' : 'Live Supabase'}
+                        </span>
+                      </div>
+                      {diagnostics.inMemoryFeedbackCount > 0 && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-[#787567] dark:text-[#BDB8A4]">In-Memory Items</span>
+                          <span className="text-sm font-bold text-amber-500">{diagnostics.inMemoryFeedbackCount}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-[#787567] dark:text-[#BDB8A4]">Credentials Mode</span>
+                        <span className="text-xs font-bold text-[#121212] dark:text-[#F4EFE6] bg-[#EBE4CF]/40 dark:bg-[#2C2A22] px-2 py-0.5 rounded-md">
+                          {diagnostics.isServiceRoleKeyFallback ? 'Unprivileged Fallback' : 'Service Role'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </SpotlightCard>
             </>

@@ -5,6 +5,7 @@ import { X, Calendar, Copy, Check, ShieldCheck, Sparkles, AlertCircle, Send, Fil
 import { AnimatedDownload, AnimatedExternalLink } from './icons';
 import { useToast } from '../context/ToastContext';
 import { useSavedRoms } from '../hooks/useSavedRoms';
+import Markdown from 'react-markdown';
 
 import { usePerformanceTier } from '../context/PerformanceContext';
 import { supabase } from '../lib/supabase';
@@ -217,8 +218,8 @@ export const RomDetailsModal: React.FC<RomDetailsModalProps> = ({
                 <h4 className="text-xs font-bold uppercase tracking-wider text-[#787567] dark:text-[#BDB8A4]">
                   Overview & Build Details
                 </h4>
-                <div className="p-4 rounded-2xl bg-[#FAF0CF]/50 dark:bg-[#14130F]/60 border border-[#EBE4CF] dark:border-[#36342A] text-sm text-[#49473E] dark:text-[#F4EFE6] leading-relaxed">
-                  {rom.description}
+                <div className="p-4 rounded-2xl bg-[#FAF0CF]/50 dark:bg-[#14130F]/60 border border-[#EBE4CF] dark:border-[#36342A] text-sm text-[#49473E] dark:text-[#F4EFE6] leading-relaxed markdown-body">
+                  <Markdown>{rom.description}</Markdown>
                 </div>
               </div>
             )}
@@ -234,9 +235,11 @@ export const RomDetailsModal: React.FC<RomDetailsModalProps> = ({
                 </div>
                 <ul className="space-y-2.5 p-4 sm:p-5 rounded-2xl bg-[#FAF0CF]/50 dark:bg-[#14130F]/60 border border-[#EBE4CF] dark:border-[#36342A]">
                   {rom.changelog.map((item, i) => (
-                    <li key={i} className="flex items-start gap-3 text-xs sm:text-sm text-[#49473E] dark:text-[#F4EFE6] leading-relaxed">
+                    <li key={i} className="flex items-start gap-3 text-xs sm:text-sm text-[#49473E] dark:text-[#F4EFE6] leading-relaxed markdown-body">
                       <span className="w-2 h-2 rounded-full bg-[#FDE694] dark:bg-[#FDE694] mt-1.5 shrink-0 shadow-xs" />
-                      <span>{item}</span>
+                      <div className="flex-1">
+                        <Markdown>{item}</Markdown>
+                      </div>
                     </li>
                   ))}
                 </ul>
