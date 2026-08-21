@@ -107,10 +107,10 @@ export const ProfilePage: React.FC = () => {
           <div className="md:col-span-1">
             <SpotlightCard className="p-8 border border-[#EBE4CF] dark:border-[#2C2A22] bg-gradient-to-b from-[#FFFDF7] to-[#FAF5E6] dark:from-[#181712] dark:to-[#12110D] shadow-xs sticky top-8">
               <div className="flex flex-col items-center">
-                <div className="w-32 h-32 rounded-3xl bg-white dark:bg-[#151410] border-2 border-dashed border-[#EBE4CF] dark:border-[#36342A] flex items-center justify-center overflow-hidden mb-6 group relative">
+                <div className="w-32 h-32 aspect-square rounded-3xl bg-white dark:bg-[#151410] border-2 border-dashed border-[#EBE4CF] dark:border-[#36342A] flex items-center justify-center overflow-hidden mb-6 group relative">
                   {profile.avatarUrl ? (
                     <>
-                      <img src={profile.avatarUrl} alt="Avatar" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                      <img src={profile.avatarUrl} alt="Avatar" decoding="async" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                         <Upload size={32} className="text-white" />
                       </div>

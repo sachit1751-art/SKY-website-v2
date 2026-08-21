@@ -86,7 +86,7 @@ export const RomCompareModal: React.FC<RomCompareModalProps> = ({
                   <div className="min-w-0 pr-6">
                     <div className="flex items-center gap-2">
                       {rom.logoUrl ? (
-                        <img src={rom.logoUrl} alt={rom.name} className="w-7 h-7 rounded-lg object-cover bg-black/40" />
+                        <img src={rom.logoUrl} alt={rom.name} decoding="async" referrerPolicy="no-referrer" className="w-7 h-7 aspect-square rounded-lg object-cover bg-black/40" />
                       ) : (
                         <div className="w-7 h-7 rounded-lg bg-[#FDE694]/20 flex items-center justify-center text-[#FDE694] font-bold text-xs">
                           {rom.name.charAt(0)}

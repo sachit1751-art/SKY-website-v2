@@ -328,7 +328,6 @@ export const ScreenshotCarousel: React.FC = () => {
                 src={currentSlide.src}
                 alt={currentSlide.alt}
                 referrerPolicy="no-referrer"
-                loading="lazy"
                 decoding="async"
                 onError={() => handleImageError(currentSlide.id)}
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"

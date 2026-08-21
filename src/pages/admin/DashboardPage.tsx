@@ -17,6 +17,13 @@ import { RecentActivityWidget } from '../../components/admin/RecentActivityWidge
 import { FeedbackManager } from '../../components/admin/FeedbackManager';
 import { SEO } from '../../components/SEO';
 import { motion } from 'motion/react';
+import { 
+  prefetchRomEditorPage, 
+  prefetchAdminProfilePage, 
+  prefetchApproveAdminsPage, 
+  prefetchSecurityLogsPage, 
+  prefetchFeedbackAdminPage 
+} from '../../utils/prefetchAdmin';
 
 export const DashboardPage: React.FC = () => {
   const { user, adminProfile, isSuperAdmin, signOut, loading: authLoading } = useAuth();
@@ -264,12 +271,18 @@ export const DashboardPage: React.FC = () => {
               <>
                 <Link 
                   to="/admin/approve" 
+                  onMouseEnter={prefetchApproveAdminsPage}
+                  onTouchStart={prefetchApproveAdminsPage}
+                  onFocus={prefetchApproveAdminsPage}
                   className="px-4 py-2.5 bg-white dark:bg-[#151410] border border-[#EBE4CF] dark:border-[#36342A] rounded-2xl hover:border-red-500/40 text-xs font-bold text-[#121212] dark:text-[#F4EFE6] transition-all flex items-center gap-2"
                 >
                   <UserPlus size={15} className="text-red-500" /> Approve Maintainers
                 </Link>
                 <Link 
                   to="/admin/logs" 
+                  onMouseEnter={prefetchSecurityLogsPage}
+                  onTouchStart={prefetchSecurityLogsPage}
+                  onFocus={prefetchSecurityLogsPage}
                   className="px-4 py-2.5 bg-white dark:bg-[#151410] border border-[#EBE4CF] dark:border-[#36342A] rounded-2xl hover:border-blue-500/40 text-xs font-bold text-[#121212] dark:text-[#F4EFE6] transition-all flex items-center gap-2"
                 >
                   <ShieldAlert size={15} className="text-blue-500" /> Security Logs
@@ -278,6 +291,9 @@ export const DashboardPage: React.FC = () => {
             )}
             <Link 
               to="/admin/feedback" 
+              onMouseEnter={prefetchFeedbackAdminPage}
+              onTouchStart={prefetchFeedbackAdminPage}
+              onFocus={prefetchFeedbackAdminPage}
               className="px-4 py-2.5 bg-white dark:bg-[#151410] border border-[#EBE4CF] dark:border-[#36342A] rounded-2xl hover:border-amber-500/40 text-xs font-bold text-[#121212] dark:text-[#F4EFE6] transition-all flex items-center gap-2"
             >
               <MessageSquarePlus size={15} className="text-amber-500" /> User Feedback
@@ -289,6 +305,9 @@ export const DashboardPage: React.FC = () => {
             </Link>
             <Link 
               to="/admin/roms/new" 
+              onMouseEnter={prefetchRomEditorPage}
+              onTouchStart={prefetchRomEditorPage}
+              onFocus={prefetchRomEditorPage}
               className="px-5 py-2.5 bg-[#FDE694] border border-[#FCE076] text-[#121212] font-bold text-xs rounded-2xl hover:bg-[#FCE076] transition-all flex items-center gap-2 shadow-xs cursor-pointer"
             >
               <Plus size={16} /> Publish New ROM
@@ -342,9 +361,9 @@ export const DashboardPage: React.FC = () => {
             <>
               <SpotlightCard className="p-8 border border-[#EBE4CF] dark:border-[#2C2A22] bg-gradient-to-b from-[#FFFDF7] to-[#FAF5E6] dark:from-[#181712] dark:to-[#12110D] shadow-xs">
                 <div className="flex flex-col items-center text-center">
-                  <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-[#FFF8E1] to-[#FAF3DD] dark:from-[#151410] dark:to-[#1F1E18] border border-[#EBE4CF] dark:border-[#36342A] shadow-xs overflow-hidden mb-6 flex items-center justify-center">
+                  <div className="w-24 h-24 aspect-square rounded-3xl bg-gradient-to-br from-[#FFF8E1] to-[#FAF3DD] dark:from-[#151410] dark:to-[#1F1E18] border border-[#EBE4CF] dark:border-[#36342A] shadow-xs overflow-hidden mb-6 flex items-center justify-center">
                     {adminProfile?.avatarUrl ? (
-                      <img src={adminProfile.avatarUrl} alt={adminProfile.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                      <img src={adminProfile.avatarUrl} alt={adminProfile.name} decoding="async" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                     ) : (
                       <span className="text-3xl font-black text-[#121212] dark:text-[#FDE694]">
                         {adminProfile?.name?.charAt(0) || 'A'}
@@ -378,6 +397,9 @@ export const DashboardPage: React.FC = () => {
                   
                   <Link 
                     to="/admin/profile"
+                    onMouseEnter={prefetchAdminProfilePage}
+                    onTouchStart={prefetchAdminProfilePage}
+                    onFocus={prefetchAdminProfilePage}
                     className="w-full py-3 bg-white dark:bg-[#151410] text-[#121212] dark:text-[#F4EFE6] font-bold rounded-xl border border-[#EBE4CF] dark:border-[#36342A] hover:bg-[#F9F6E5] dark:hover:bg-[#1F1E18] transition-all text-sm block text-center"
                   >
                     EDIT PROFILE
@@ -481,12 +503,12 @@ export const DashboardPage: React.FC = () => {
               </SpotlightCard>
             ) : (
               filteredRoms.map((rom) => (
-                <SpotlightCard key={rom.id || rom.name} className="p-6 border border-[#EBE4CF] dark:border-[#2C2A22] bg-gradient-to-b from-[#FFFDF7] to-[#FAF5E6] dark:from-[#181712] dark:to-[#12110D] shadow-xs group">
+                <SpotlightCard key={rom.id || rom.name} style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 100px' }} className="p-6 border border-[#EBE4CF] dark:border-[#2C2A22] bg-gradient-to-b from-[#FFFDF7] to-[#FAF5E6] dark:from-[#181712] dark:to-[#12110D] shadow-xs group">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                     <div className="flex items-center gap-5">
-                      <div className="w-14 h-14 rounded-2xl bg-white dark:bg-[#151410] border border-[#EBE4CF] dark:border-[#36342A] flex items-center justify-center overflow-hidden shrink-0">
+                      <div className="w-14 h-14 aspect-square rounded-2xl bg-white dark:bg-[#151410] border border-[#EBE4CF] dark:border-[#36342A] flex items-center justify-center overflow-hidden shrink-0">
                         {rom.logoUrl ? (
-                          <img src={rom.logoUrl} alt={rom.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                          <img src={rom.logoUrl} alt={rom.name} decoding="async" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                         ) : (
                           <span className="text-xl font-black text-[#121212] dark:text-[#FDE694] opacity-30">
                             {rom.name.charAt(0)}
@@ -518,6 +540,9 @@ export const DashboardPage: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <Link 
                         to={`/admin/roms/${rom.id || rom.name}/edit`}
+                        onMouseEnter={prefetchRomEditorPage}
+                        onTouchStart={prefetchRomEditorPage}
+                        onFocus={prefetchRomEditorPage}
                         className="p-3 bg-white dark:bg-[#151410] text-[#121212] dark:text-[#F4EFE6] rounded-xl border border-[#EBE4CF] dark:border-[#36342A] hover:border-[#FDE694] hover:bg-[#FDE694]/10 transition-all"
                         title="Edit ROM Details & Supabase Record"
                       >

@@ -13,13 +13,12 @@ const TeamAvatar: React.FC<{ name: string; avatarUrl?: string }> = ({ name, avat
     .toUpperCase() || name.slice(0, 2).toUpperCase();
 
   return (
-    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-gradient-to-br from-[#FFF8E1] to-[#FAF3DD] dark:from-[#151410] dark:to-[#1F1E18] border border-[#EBE4CF] dark:border-[#36342A] shadow-xs overflow-hidden shrink-0 relative flex items-center justify-center">
+    <div className="w-16 h-16 sm:w-20 sm:h-20 aspect-square rounded-3xl bg-gradient-to-br from-[#FFF8E1] to-[#FAF3DD] dark:from-[#151410] dark:to-[#1F1E18] border border-[#EBE4CF] dark:border-[#36342A] shadow-xs overflow-hidden shrink-0 relative flex items-center justify-center">
       {avatarUrl && (
         <img
           src={avatarUrl}
           alt={name}
           referrerPolicy="no-referrer"
-          loading="lazy"
           decoding="async"
           onError={(e) => {
             e.currentTarget.style.display = 'none';

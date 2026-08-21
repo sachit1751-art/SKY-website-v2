@@ -6,12 +6,14 @@ interface SpotlightCardProps {
   children: React.ReactNode;
   className?: string;
   spotlightColor?: string;
+  style?: React.CSSProperties;
 }
 
 export const SpotlightCard: React.FC<SpotlightCardProps> = ({
   children,
   className = '',
-  spotlightColor = 'rgba(253, 230, 148, 0.15)'
+  spotlightColor = 'rgba(253, 230, 148, 0.15)',
+  style,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFocused, setIsFocused] = useState(false);
@@ -35,6 +37,7 @@ export const SpotlightCard: React.FC<SpotlightCardProps> = ({
   return (
     <div
       ref={containerRef}
+      style={style}
       onMouseMove={disableSpotlight ? undefined : handleMouseMove}
       onMouseEnter={() => !disableSpotlight && setIsFocused(true)}
       onMouseLeave={() => !disableSpotlight && setIsFocused(false)}

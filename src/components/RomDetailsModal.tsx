@@ -111,14 +111,15 @@ export const RomDetailsModal: React.FC<RomDetailsModalProps> = ({
           <div className="p-6 sm:p-8 border-b border-[#EBE4CF] dark:border-[#36342A] flex items-start justify-between gap-4 bg-[#FAF0CF]/40 dark:bg-[#14130F]/60">
             <div className="flex items-center gap-4">
               {rom.logoUrl ? (
-                <img
-                  src={rom.logoUrl}
-                  alt={rom.name}
-                  referrerPolicy="no-referrer"
-                  loading="eager"
-                  decoding="async"
-                  className="w-14 h-14 rounded-2xl object-cover border border-[#EBE4CF] dark:border-[#36342A] shadow-xs shrink-0"
-                />
+                <div className="w-14 h-14 aspect-square rounded-2xl overflow-hidden border border-[#EBE4CF] dark:border-[#36342A] shadow-xs shrink-0">
+                  <img
+                    src={rom.logoUrl}
+                    alt={rom.name}
+                    referrerPolicy="no-referrer"
+                    decoding="async"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
               ) : (
                 <div className="w-14 h-14 rounded-2xl bg-[#FDE694] dark:bg-[#FDE694] flex items-center justify-center text-[#121212] font-black text-xl shadow-xs shrink-0">
                   {rom.name.charAt(0)}
@@ -261,7 +262,7 @@ export const RomDetailsModal: React.FC<RomDetailsModalProps> = ({
                         src={screenshot.imageUrl} 
                         alt={screenshot.caption || "Screenshot"} 
                         className="w-full h-full object-cover"
-                        loading="lazy"
+                        decoding="async"
                         referrerPolicy="no-referrer"
                       />
                     </div>

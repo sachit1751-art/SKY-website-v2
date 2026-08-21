@@ -248,6 +248,7 @@ export const CommunityFAQSection: React.FC<FAQBlockProps> = ({
               <ScrollReveal key={faq.id} delayMs={index * 30} distance={8}>
                 <div
                   id={`faq-${faq.id}`}
+                  style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 120px' }}
                   className={`group rounded-3xl border transition-all duration-300 overflow-hidden ${
                     isOpen
                       ? 'bg-[#FAF3DD] dark:bg-[#1F1E18] border-[#49473E]/30 dark:border-[#FDE694]/50 shadow-md ring-1 ring-[#FDE694]/30'

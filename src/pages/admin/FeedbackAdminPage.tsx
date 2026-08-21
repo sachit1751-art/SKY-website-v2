@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ChevronLeft, MessageSquarePlus, Shield } from 'lucide-react';
 import { FeedbackManager } from '../../components/admin/FeedbackManager';
 import { SEO } from '../../components/SEO';
+import { prefetchAdminPages } from '../../utils/prefetchAdmin';
 
 export const FeedbackAdminPage: React.FC = () => {
   return (
@@ -18,6 +19,9 @@ export const FeedbackAdminPage: React.FC = () => {
         <div className="mb-8">
           <Link
             to="/admin"
+            onMouseEnter={prefetchAdminPages}
+            onTouchStart={prefetchAdminPages}
+            onFocus={prefetchAdminPages}
             className="inline-flex items-center gap-1.5 text-xs font-bold text-[#787567] dark:text-[#BDB8A4] hover:text-[#121212] dark:hover:text-[#F4EFE6] transition-colors mb-4 group"
           >
             <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />

@@ -837,7 +837,7 @@ export const RomEditorPage: React.FC = () => {
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 {rom.screenshots?.map((shot) => (
                   <div key={shot.id} className="relative group aspect-[9/16] rounded-xl overflow-hidden border border-[#EBE4CF] dark:border-[#36342A] bg-black/5">
-                    <img src={shot.imageUrl} alt="ROM Screenshot" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                    <img src={shot.imageUrl} alt="ROM Screenshot" decoding="async" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                     <button 
                       type="button"
                       onClick={() => setRom(prev => ({ ...prev, screenshots: prev.screenshots?.filter(s => s.id !== shot.id) }))}
@@ -865,10 +865,10 @@ export const RomEditorPage: React.FC = () => {
             <SpotlightCard className="p-6 border border-[#EBE4CF] dark:border-[#2C2A22] bg-gradient-to-b from-[#FFFDF7] to-[#FAF5E6] dark:from-[#181712] dark:to-[#12110D] shadow-xs">
               <h3 className="text-xs font-black text-[#787567] dark:text-[#BDB8A4] tracking-widest uppercase mb-6">ROM LOGO</h3>
               <div className="flex flex-col items-center">
-                <div className="w-24 h-24 rounded-3xl bg-white dark:bg-[#151410] border-2 border-dashed border-[#EBE4CF] dark:border-[#36342A] flex items-center justify-center overflow-hidden mb-4 group relative shadow-xs">
+                <div className="w-24 h-24 aspect-square rounded-3xl bg-white dark:bg-[#151410] border-2 border-dashed border-[#EBE4CF] dark:border-[#36342A] flex items-center justify-center overflow-hidden mb-4 group relative shadow-xs">
                   {rom.logoUrl ? (
                     <>
-                      <img src={rom.logoUrl} alt="Logo" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                      <img src={rom.logoUrl} alt="Logo" decoding="async" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer">
                         <Upload size={24} className="text-white" />
                       </div>

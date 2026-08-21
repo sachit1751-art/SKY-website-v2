@@ -8,7 +8,7 @@ export const FlashingGuide: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'clean' | 'dirty' | 'firmware'>('clean');
 
   return (
-    <div className="bg-[#FAF3DD]/60 dark:bg-[#1F1E18]/70 border border-[#EBE4CF] dark:border-[#36342A] rounded-3xl overflow-hidden transition-all duration-300 shadow-xs">
+    <div className="bg-[#FAF3DD]/60 dark:bg-[#1F1E18]/70 border border-[#EBE4CF] dark:border-[#36342A] rounded-3xl overflow-hidden transition-all duration-300 shadow-xs" style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 600px' }}>
       {/* Accordion Toggle Header */}
       <button
         onClick={() => setIsOpen(!isOpen)}

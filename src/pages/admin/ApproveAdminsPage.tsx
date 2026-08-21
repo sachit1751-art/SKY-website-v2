@@ -6,6 +6,7 @@ import { SpotlightCard } from '../../components/SpotlightCard';
 import { Shield, Check, X, Search, ChevronLeft, UserX, UserCheck, Trash2, Users, Clock, ShieldAlert } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { SEO } from '../../components/SEO';
+import { prefetchAdminPages } from '../../utils/prefetchAdmin';
 import { supabase } from '../../lib/supabase';
 
 export const ApproveAdminsPage: React.FC = () => {
@@ -128,6 +129,9 @@ export const ApproveAdminsPage: React.FC = () => {
         <header className="mb-10">
           <Link 
             to="/admin" 
+            onMouseEnter={prefetchAdminPages}
+            onTouchStart={prefetchAdminPages}
+            onFocus={prefetchAdminPages}
             className="inline-flex items-center gap-2 text-xs font-black text-[#787567] dark:text-[#BDB8A4] tracking-widest uppercase mb-6 hover:text-[#121212] dark:hover:text-[#FDE694] transition-colors group"
           >
             <ChevronLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
@@ -220,9 +224,9 @@ export const ApproveAdminsPage: React.FC = () => {
                   >
                     <SpotlightCard className="p-6 border border-[#EBE4CF] dark:border-[#2C2A22] bg-gradient-to-b from-[#FFFDF7] to-[#FAF5E6] dark:from-[#181712] dark:to-[#12110D] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                       <div className="flex items-center gap-5">
-                        <div className="w-14 h-14 rounded-2xl bg-white dark:bg-[#151410] border border-[#EBE4CF] dark:border-[#36342A] flex items-center justify-center overflow-hidden shrink-0">
+                        <div className="w-14 h-14 aspect-square rounded-2xl bg-white dark:bg-[#151410] border border-[#EBE4CF] dark:border-[#36342A] flex items-center justify-center overflow-hidden shrink-0">
                           {req.avatarUrl ? (
-                            <img src={req.avatarUrl} alt={req.name} className="w-full h-full object-cover" />
+                            <img src={req.avatarUrl} alt={req.name} decoding="async" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                           ) : (
                             <span className="text-xl font-black text-[#121212] dark:text-[#FDE694]">
                               {(req.name || 'A').charAt(0)}

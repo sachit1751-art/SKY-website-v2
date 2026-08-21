@@ -6,6 +6,7 @@ import { Shield, Search, Filter, Calendar, Download, ChevronLeft, AlertCircle } 
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { SEO } from '../../components/SEO';
+import { prefetchAdminPages } from '../../utils/prefetchAdmin';
 import { supabase } from '../../lib/supabase';
 
 export const SecurityLogsPage: React.FC = () => {
@@ -194,6 +195,9 @@ export const SecurityLogsPage: React.FC = () => {
         <header className="mb-12">
           <Link 
             to="/admin" 
+            onMouseEnter={prefetchAdminPages}
+            onTouchStart={prefetchAdminPages}
+            onFocus={prefetchAdminPages}
             className="inline-flex items-center gap-2 text-xs font-black text-[#787567] dark:text-[#BDB8A4] tracking-widest uppercase mb-6 hover:text-[#121212] dark:hover:text-[#FDE694] transition-colors group"
           >
             <ChevronLeft size={14} className="group-hover:-translate-x-1 transition-transform" />

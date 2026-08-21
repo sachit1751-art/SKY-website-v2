@@ -20,6 +20,8 @@ interface MobileNavDockProps {
 import { useAuth } from '../context/AuthContext';
 import { usePerformanceTier } from '../context/PerformanceContext';
 import { AlertCircle } from 'lucide-react';
+import { useScrollManager } from '../hooks/useScrollManager';
+import { prefetchAdminPages } from '../utils/prefetchAdmin';
 
 export const MobileNavDock: React.FC<MobileNavDockProps> = ({
   onOpenSearch,
@@ -62,40 +64,15 @@ export const MobileNavDock: React.FC<MobileNavDockProps> = ({
   }, []);
 
   // Hide on scroll down, show on scroll up with requestAnimationFrame throttling
-  useEffect(() => {
-    let lastScrollY = window.scrollY;
-    let ticking = false;
-
-    const updateScroll = () => {
-      const currentScrollY = window.scrollY;
-      
-      if (currentScrollY <= 0) {
-        setIsVisible(true);
-      } else if (currentScrollY > lastScrollY && currentScrollY > 50) {
-        // Scrolling down
-        setIsVisible(false);
-      } else if (currentScrollY < lastScrollY && Math.abs(currentScrollY - lastScrollY) > 8) {
-        // Scrolling up
-        setIsVisible(true);
-      }
-      
-      lastScrollY = currentScrollY;
-      ticking = false;
-    };
-
-    const handleScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(updateScroll);
-        ticking = true;
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, []);
+  useScrollManager((scrollY, direction) => {
+    if (scrollY <= 0) {
+      setIsVisible(true);
+    } else if (direction === 'down' && scrollY > 50) {
+      setIsVisible(false);
+    } else if (direction === 'up') {
+      setIsVisible(true);
+    }
+  });
 
   // Hide if search or full menu overlay is open
   if (isSearchOpen || isMenuOpen) {
@@ -119,18 +96,22 @@ export const MobileNavDock: React.FC<MobileNavDockProps> = ({
           animate={{ y: 0, opacity: 1, scale: 1 }}
           exit={{ y: 80, opacity: 0, scale: 0.95 }}
           transition={{ type: 'spring', stiffness: 400, damping: 28 }}
-          className={`${dockBgClass} md:hidden w-[calc(100%-24px)] max-w-sm mx-auto mb-3 sm:mb-4 border border-[#EBE4CF] dark:border-[#36342A] rounded-full p-1 sm:p-1.5 flex items-center justify-between gap-1 pointer-events-auto shadow-2xl`}
-          style={{ position: 'fixed', zIndex: 9999, bottom: 0, left: 0, right: 0 }}
+          className={`${dockBgClass} md:hidden w-[calc(100%-24px)] max-w-sm mx-auto mb-3 sm:mb-4 border border-[#EBE4CF] dark:border-[#36342A] rounded-full p-1 sm:p-1.5 flex items-center justify-between gap-1 pointer-events-auto shadow-2xl will-change-transform`}
+          style={{ position: 'fixed', zIndex: 9999, bottom: 0, left: 0, right: 0, willChange: 'transform' }}
         >
           {items.map((item) => {
             const isActive =
               location.pathname === item.path ||
               (item.path !== '/' && location.pathname.startsWith(item.path));
+            const isAdminPath = item.path === '/admin' || item.path.startsWith('/admin');
             const IconComponent = item.icon;
             return (
               <MotionLink
                 key={item.path}
                 to={item.path}
+                onMouseEnter={isAdminPath ? prefetchAdminPages : undefined}
+                onTouchStart={isAdminPath ? prefetchAdminPages : undefined}
+                onFocus={isAdminPath ? prefetchAdminPages : undefined}
                 className={`relative flex-1 min-h-[44px] min-w-[44px] px-1 py-1 rounded-full flex flex-col items-center justify-center text-[10px] font-bold transition-all cursor-pointer ${
                   isActive
                     ? 'text-[#121212] font-extrabold'

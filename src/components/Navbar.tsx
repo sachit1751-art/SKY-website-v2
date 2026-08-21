@@ -22,6 +22,8 @@ import { GlobalSearchModal } from './GlobalSearchModal';
 import { MobileNavDock } from './MobileNavDock';
 import { StatusIndicator } from './StatusIndicator';
 import { Shield, Plus } from 'lucide-react';
+import { useScrollManager } from '../hooks/useScrollManager';
+import { prefetchAdminPages, prefetchRomEditorPage } from '../utils/prefetchAdmin';
 
 export const Navbar: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -34,18 +36,16 @@ export const Navbar: React.FC = () => {
   const isVeryLowEnd = tier === 'low';
 
   useEffect(() => {
-    let lastScrolled = false;
-    const handleScroll = () => {
-      const isPastLimit = window.scrollY > 20;
-      if (isPastLimit !== lastScrolled) {
-        lastScrolled = isPastLimit;
-        setScrolled(isPastLimit);
-      }
-    };
-    handleScroll();
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    // Initial check
+    setScrolled(window.scrollY > 20);
   }, []);
+
+  useScrollManager((scrollY) => {
+    const isPastLimit = scrollY > 20;
+    if (isPastLimit !== scrolled) {
+      setScrolled(isPastLimit);
+    }
+  });
 
   // Lock body scroll when mobile menu is open
   useEffect(() => {
@@ -133,7 +133,7 @@ export const Navbar: React.FC = () => {
 
   return (
     <>
-      <header className="fixed top-2.5 sm:top-5 inset-x-0 z-50 flex justify-center px-3 sm:px-6 pointer-events-none transition-all duration-300">
+      <header className="fixed top-2.5 sm:top-5 inset-x-0 z-50 flex justify-center px-3 sm:px-6 pointer-events-none transition-all duration-300 will-change-transform">
         <div
           className={`pointer-events-auto w-full max-w-6xl rounded-full transition-all duration-300 flex items-center justify-between px-2.5 sm:px-4 lg:px-6 py-2 sm:py-2.5 border transform-gpu gap-1.5 lg:gap-4 ${headerBgClass} ${
             scrolled
@@ -156,10 +156,14 @@ export const Navbar: React.FC = () => {
           <nav className={`hidden md:flex items-center gap-0.5 lg:gap-1 bg-[#F4ECDC]/70 dark:bg-[#23211A]/80 p-1 rounded-full border border-[#EBE4CF] dark:border-[#36342A] relative transform-gpu shrink-0 `}>
             {navItems.map((item) => {
               const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
+              const isAdminPath = item.path === '/admin' || item.path.startsWith('/admin');
               return (
                 <Link
                   key={item.path}
                   to={item.path}
+                  onMouseEnter={isAdminPath ? prefetchAdminPages : undefined}
+                  onTouchStart={isAdminPath ? prefetchAdminPages : undefined}
+                  onFocus={isAdminPath ? prefetchAdminPages : undefined}
                   className={`relative min-h-[40px] px-2.5 lg:px-4.5 py-2 rounded-full text-xs font-bold transition-colors z-10 flex items-center justify-center ${
                     isActive
                       ? 'text-[#121212]'
@@ -199,6 +203,9 @@ export const Navbar: React.FC = () => {
               <MagneticButton strength={0.2}>
                 <Link
                   to="/admin/roms/new"
+                  onMouseEnter={prefetchRomEditorPage}
+                  onTouchStart={prefetchRomEditorPage}
+                  onFocus={prefetchRomEditorPage}
                   className="group relative overflow-hidden inline-flex items-center justify-center min-h-[44px] gap-1.5 px-3.5 lg:px-4 py-2.5 rounded-full text-xs font-bold bg-[#FDE694] text-[#121212] hover:shadow-md hover:shadow-[#FDE694]/10 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FDE694]"
                 >
                   <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" />
@@ -281,7 +288,7 @@ export const Navbar: React.FC = () => {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -10, scale: 0.98 }}
                 transition={{ type: 'spring', stiffness: 450, damping: 32 }}
-                className={`md:hidden fixed top-[66px] sm:top-20 inset-x-3 sm:inset-x-6 max-w-md mx-auto max-h-[calc(100dvh-80px)] overflow-y-auto overscroll-contain ${drawerBgClass} border border-[#EBE4CF] dark:border-[#36342A] rounded-3xl p-3.5 sm:p-5 flex flex-col gap-3 shadow-2xl pointer-events-auto origin-top transform-gpu z-50`}
+                className={`md:hidden fixed top-[66px] sm:top-20 inset-x-3 sm:inset-x-6 max-w-md mx-auto max-h-[calc(100dvh-80px)] overflow-y-auto overscroll-contain ${drawerBgClass} border border-[#EBE4CF] dark:border-[#36342A] rounded-3xl p-3.5 sm:p-5 flex flex-col gap-3 shadow-2xl pointer-events-auto origin-top transform-gpu z-50 will-change-transform`}
               >
                 {/* Search Quick Action inside Menu */}
                 <button
@@ -303,6 +310,9 @@ export const Navbar: React.FC = () => {
                 {isAdmin && (
                   <Link
                     to="/admin/roms/new"
+                    onMouseEnter={prefetchRomEditorPage}
+                    onTouchStart={prefetchRomEditorPage}
+                    onFocus={prefetchRomEditorPage}
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center justify-between w-full min-h-[48px] px-4 py-3 rounded-2xl bg-[#FDE694] text-[#121212] border border-[#EBE4CF] dark:border-transparent text-sm font-bold shadow-sm active:scale-[0.98] transition-all"
                   >
@@ -328,11 +338,15 @@ export const Navbar: React.FC = () => {
                 <nav className="flex flex-col gap-1.5" aria-label="Mobile Pages">
                   {navItems.map((item) => {
                     const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
+                    const isAdminPath = item.path === '/admin' || item.path.startsWith('/admin');
                     const IconComponent = item.icon;
                     return (
                       <Link
                         key={item.path}
                         to={item.path}
+                        onMouseEnter={isAdminPath ? prefetchAdminPages : undefined}
+                        onTouchStart={isAdminPath ? prefetchAdminPages : undefined}
+                        onFocus={isAdminPath ? prefetchAdminPages : undefined}
                         onClick={() => setMobileMenuOpen(false)}
                         className={`relative min-h-[48px] px-3.5 py-3 rounded-2xl text-sm font-semibold flex items-center justify-between transition-all active:scale-[0.98] z-10 border ${
                           isActive
